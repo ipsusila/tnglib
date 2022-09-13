@@ -1,0 +1,26 @@
+fmt := import("fmt")
+times := import("times")
+context := import("context")
+
+fmt.println("== Context Testing ===")
+// 1. variables
+fmt.println("background: ", context.background())
+fmt.println("todo: ", context.todo())
+
+// 2. with value
+bg := context.background()
+ctxval := context.with_value(bg, "user", 123)
+fmt.println("with value: ", ctxval)
+
+// 3. with timeout
+ret := context.with_timeout(ctxval, "500ms")
+fmt.println("Deadline: ", ret.ctx.deadline())
+fmt.println("BG Deadline: ", bg.deadline())
+dur := times.parse_duration("1s")
+times.sleep(dur)
+
+// test implement
+fmt.println("return: ", ret)
+fmt.println("return-err: ", ret.ctx.err())
+
+ret.cancel()

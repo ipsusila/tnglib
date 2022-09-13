@@ -25,6 +25,9 @@ func (o *Reader) Copy() tengo.Object {
 // Equals returns true if the value of the type is equal to the value of
 // another object.
 func (o *Reader) Equals(v tengo.Object) bool {
+	if v == nil || o == v {
+		return o == v
+	}
 	an, ok := v.(*Reader)
 	if !ok {
 		return false

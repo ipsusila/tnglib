@@ -53,7 +53,7 @@ func (o *InterfaceImpl) CanCall() bool {
 /*
 // Call takes an arbitrary number of arguments and returns a return value
 // and/or an error.
-func (o *InterfaceImpl) Call(_ ...tengo.Object) (ret tengo.Object, err error) {
+func (o *InterfaceImpl) Call(_ ...tengo.Object) (tengo.Object, error) {
 	return nil, nil
 }
 

@@ -3,6 +3,7 @@ package tnglib
 import (
 	"io"
 	"strings"
+	"time"
 
 	"github.com/d5/tengo/v2"
 )
@@ -52,7 +53,7 @@ func FuncWISE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 // FuncARBs transform a function of 'func() []byte' signature into
 // CallableFunc type.
 func FuncARBs(fn func() []byte) tengo.CallableFunc {
-	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
@@ -63,7 +64,7 @@ func FuncARBs(fn func() []byte) tengo.CallableFunc {
 // FuncBI transform a function of 'func([]byte, int)' signature into
 // CallableFunc type.
 func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
-	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 2 {
 			return nil, tengo.ErrWrongNumArguments
 		}
@@ -84,11 +85,60 @@ func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
 // FuncE transform a function of 'func([]byte, int)' signature into
 // CallableFunc type.
 func FuncE(fn func() error) tengo.CallableFunc {
-	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
 
 		return WrapError(fn()), nil
+	}
+}
+
+// FuncTB transform a function of 'func([]byte, int)' signature into
+// CallableFunc type.
+func FuncTB(fn func() (time.Time, bool)) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		if len(args) != 0 {
+			return nil, tengo.ErrWrongNumArguments
+		}
+		tm, ok := fn()
+		val := tengo.FalseValue
+		if ok {
+			val = tengo.TrueValue
+		}
+
+		return &tengo.ImmutableMap{
+			Value: map[string]tengo.Object{
+				"time": &tengo.Time{Value: tm},
+				"ok":   val,
+			},
+		}, nil
+	}
+}
+
+// FuncU transform a function of 'func([]byte, int)' signature into
+// CallableFunc type.
+func FuncU(fn func()) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		if len(args) != 0 {
+			return nil, tengo.ErrWrongNumArguments
+		}
+		fn()
+
+		return tengo.UndefinedValue, nil
+	}
+}
+
+// FuncII transform a function of 'func([]byte, int)' signature into
+// CallableFunc type.
+func FuncII(fn func(any) any) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		if len(args) != 1 {
+			return nil, tengo.ErrWrongNumArguments
+		}
+		arg := tengo.ToInterface(args[0])
+		res := fn(arg)
+
+		return tengo.FromInterface(res)
 	}
 }

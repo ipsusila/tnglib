@@ -3,15 +3,6 @@ os := import("os")
 io := import("io")
 template := import("text/template")
 
-// display message
-//fmt.println("Hello from tengo")
-
-// open file
-fd := os.create("_testdata/texttpl.out")
-if is_error(fd) {
-    fmt.println("error-fd: ", fd)
-}
-
 // create template
 letter := `
 Dear {{.Name}},
@@ -27,38 +18,56 @@ Best wishes,
 Josie
 `
 
-tpl := template.parse("letter", letter)
-if is_error(tpl) {
-    fmt.println("error-tpl: ", tpl)
+main := func() {
+    // display message
+    fmt.println("text/template test script")
+
+    // open file
+    fd := os.create("_testdata/texttpl.out")
+    if is_error(fd) {
+        fmt.println("error-fd: ", fd)
+        return
+    }
+
+    tpl := template.parse("letter", letter)
+    if is_error(tpl) {
+        fmt.println("error-tpl: ", tpl)
+        fd.close()
+        return
+    }
+
+    data := {
+        Name: "Kuro",
+        Gift: "Good boy",
+        Attend: true
+    }
+
+    // execute template, display to stdout
+    tpl.execute(io.stdout, data)
+
+    // execute the template
+    ret := tpl.execute(fd.write, data)
+    if is_error(ret) {
+        fmt.println("error execute template: ", ret)
+        fd.close()
+        return
+    }
+
+    // close file
+    fd.close()
+
+    // experiments with template object
+    tp2 := tpl.clone()
+    data.Name = "Rocky"
+    res := tp2.execute_string(data)
+    fmt.println("=====")
+    fmt.println(res)
+    fmt.println("=====")
+
+    res = template.execute_string("other_letter", letter, data)
+    fmt.println("****** EXEC ******")
+    fmt.println(res)
 }
-//fmt.println("TEMPLATE: ", tpl)
 
-data := {
-    Name: "Kuro",
-    Gift: "Good boy",
-    Attend: true
-}
-
-// execute template, display to stdout
-tpl.execute(io.stdout, data)
-
-// execute the template
-ret := tpl.execute(fd.write, data)
-if is_error(ret) {
-    fmt.println("error execute template: ", ret)
-}
-
-// close file
-fd.close()
-
-// experiments with template object
-tp2 := tpl.clone()
-data.Name = "Rocky"
-res := tp2.execute_string(data)
-fmt.println("=====")
-fmt.println(res)
-fmt.println("=====")
-
-res = template.execute_string("other_letter", letter, data)
-fmt.println("****** EXEC ******")
-fmt.println(res)
+// call main
+main()

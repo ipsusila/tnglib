@@ -2,6 +2,7 @@ package tnglib
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/d5/tengo/v2"
 )
@@ -57,6 +58,23 @@ func ArgIToInt(idx int, args ...tengo.Object) (int, error) {
 	return n, nil
 }
 
+// ArgIToInt64 convert tengo function call arguments to string.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgIToInt64(idx int, args ...tengo.Object) (int64, error) {
+	if idx >= len(args) {
+		return 0, tengo.ErrWrongNumArguments
+	}
+	v, ok := tengo.ToInt64(args[idx])
+	if !ok {
+		return 0, tengo.ErrInvalidArgumentType{
+			Name:     fmt.Sprintf("arg[%d]", idx),
+			Expected: "integer(compatible)",
+			Found:    args[idx].TypeName(),
+		}
+	}
+	return v, nil
+}
+
 // ArgToByteSlice convert tengo function call arguments to []byte.
 // If the argument count is not equal to one, it will return ErrWrongNumArguments
 func ArgToByteSlice(args ...tengo.Object) ([]byte, error) {
@@ -110,4 +128,55 @@ func ArgsToStrings(minArg int, args ...tengo.Object) ([]string, error) {
 		items = append(items, filename)
 	}
 	return items, nil
+}
+
+// ArgIToContext convert argument to context value
+func ArgIToContext(idx int, args ...tengo.Object) (*Context, error) {
+	if idx >= len(args) {
+		return nil, tengo.ErrWrongNumArguments
+	}
+	// get context
+	ctx, ok := args[0].(*Context)
+	if !ok {
+		return nil, tengo.ErrInvalidArgumentType{
+			Name:     fmt.Sprintf("arg[%d]", idx),
+			Expected: "context",
+			Found:    args[idx].TypeName(),
+		}
+	}
+	return ctx, nil
+}
+
+// ArgToContext convert argument to context value
+func ArgToContext(args ...tengo.Object) (*Context, error) {
+	if len(args) != 1 {
+		return nil, tengo.ErrWrongNumArguments
+	}
+	// get context
+	ctx, ok := args[0].(*Context)
+	if !ok {
+		return nil, tengo.ErrInvalidArgumentType{
+			Name:     "first",
+			Expected: "context",
+			Found:    args[0].TypeName(),
+		}
+	}
+	return ctx, nil
+}
+
+// ArgIToTime convert argument to context value
+func ArgIToTime(idx int, args ...tengo.Object) (time.Time, error) {
+	if idx >= len(args) {
+		return time.Time{}, tengo.ErrWrongNumArguments
+	}
+	// get time
+	tm, ok := tengo.ToTime(args[idx])
+	if !ok {
+		return time.Time{}, tengo.ErrInvalidArgumentType{
+			Name:     fmt.Sprintf("arg[%d]", idx),
+			Expected: "time(compatible)",
+			Found:    args[idx].TypeName(),
+		}
+	}
+	return tm, nil
 }

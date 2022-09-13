@@ -9,6 +9,7 @@ var BuiltinModules = map[string]map[string]tengo.Object{
 	"text/template": textTplModule,
 	"html/template": htmlTplModule,
 	"io":            ioModule,
+	"context":       ctxModule,
 }
 
 // GetModuleMap returns the module map that includes all modules
