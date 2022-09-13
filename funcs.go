@@ -1,7 +1,6 @@
 package tnglib
 
 import (
-	"fmt"
 	"io"
 	"strings"
 
@@ -30,7 +29,7 @@ func FuncWIE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 			}
 		}
 		da := tengo.ToInterface(args[1])
-		return wrapError(fn(wr, da)), nil
+		return WrapError(fn(wr, da)), nil
 	}
 }
 
@@ -44,97 +43,52 @@ func FuncWISE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 		var sb strings.Builder
 		da := tengo.ToInterface(args[0])
 		if err := fn(&sb, da); err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
 		return &tengo.String{Value: sb.String()}, nil
 	}
 }
 
-// ArgToString convert tengo function call arguments to string.
-// If the argument count is not equal to one, it will return ErrWrongNumArguments
-func ArgToString(args ...tengo.Object) (string, error) {
-	if len(args) != 1 {
-		return "", tengo.ErrWrongNumArguments
-	}
-	str, ok := tengo.ToString(args[0])
-	if !ok {
-		return "", tengo.ErrInvalidArgumentType{
-			Name:     "first",
-			Expected: "string(compatible)",
-			Found:    args[0].TypeName(),
+// FuncARBs transform a function of 'func() []byte' signature into
+// CallableFunc type.
+func FuncARBs(fn func() []byte) tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		if len(args) != 0 {
+			return nil, tengo.ErrWrongNumArguments
 		}
+		return &tengo.Bytes{Value: fn()}, nil
 	}
-	return str, nil
 }
 
-// ArgIToString convert tengo function call arguments to string.
-// If the argument count is not equal to one, it will return ErrWrongNumArguments
-func ArgIToString(idx int, args ...tengo.Object) (string, error) {
-	if idx >= len(args) {
-		return "", tengo.ErrWrongNumArguments
-	}
-	str, ok := tengo.ToString(args[idx])
-	if !ok {
-		return "", tengo.ErrInvalidArgumentType{
-			Name:     fmt.Sprintf("arg[%d]", idx),
-			Expected: "string(compatible)",
-			Found:    args[idx].TypeName(),
+// FuncBI transform a function of 'func([]byte, int)' signature into
+// CallableFunc type.
+func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		if len(args) != 2 {
+			return nil, tengo.ErrWrongNumArguments
 		}
+		buf, err := ArgIToByteSlice(0, args...)
+		if err != nil {
+			return nil, err
+		}
+		n, err := ArgIToInt(1, args...)
+		if err != nil {
+			return nil, err
+		}
+		fn(buf, n)
+
+		return tengo.TrueValue, nil
 	}
-	return str, nil
 }
 
-// ArgToByteSlice convert tengo function call arguments to []byte.
-// If the argument count is not equal to one, it will return ErrWrongNumArguments
-func ArgToByteSlice(args ...tengo.Object) ([]byte, error) {
-	if len(args) != 1 {
-		return nil, tengo.ErrWrongNumArguments
-	}
-	data, ok := tengo.ToByteSlice(args[0])
-	if !ok {
-		return nil, tengo.ErrInvalidArgumentType{
-			Name:     "first",
-			Expected: "bytes(compatible)",
-			Found:    args[0].TypeName(),
+// FuncE transform a function of 'func([]byte, int)' signature into
+// CallableFunc type.
+func FuncE(fn func() error) tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		if len(args) != 0 {
+			return nil, tengo.ErrWrongNumArguments
 		}
-	}
-	return data, nil
-}
 
-// ArgIToByteSlice convert tengo function call arguments to []byte.
-// If the argument count is not equal to one, it will return ErrWrongNumArguments
-func ArgIToByteSlice(idx int, args ...tengo.Object) ([]byte, error) {
-	if idx >= len(args) {
-		return nil, tengo.ErrWrongNumArguments
+		return WrapError(fn()), nil
 	}
-	data, ok := tengo.ToByteSlice(args[idx])
-	if !ok {
-		return nil, tengo.ErrInvalidArgumentType{
-			Name:     fmt.Sprintf("arg[%d]", idx),
-			Expected: "bytes(compatible)",
-			Found:    args[idx].TypeName(),
-		}
-	}
-	return data, nil
-}
-
-// ArgsToStrings convert tengo function call arguments to string slice.
-// If the argument count is less than minArg, it will return ErrWrongNumArguments
-func ArgsToStrings(minArg int, args ...tengo.Object) ([]string, error) {
-	if len(args) < minArg {
-		return nil, tengo.ErrWrongNumArguments
-	}
-	items := []string{}
-	for idx, arg := range args {
-		filename, ok := tengo.ToString(arg)
-		if !ok {
-			return nil, tengo.ErrInvalidArgumentType{
-				Name:     fmt.Sprintf("arg[%d]", idx),
-				Expected: "string(compatible)",
-				Found:    arg.TypeName(),
-			}
-		}
-		items = append(items, filename)
-	}
-	return items, nil
 }

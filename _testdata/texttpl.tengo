@@ -1,20 +1,19 @@
 fmt := import("fmt")
 os := import("os")
 io := import("io")
-template := import("html/template")
+template := import("text/template")
 
 // display message
 //fmt.println("Hello from tengo")
 
 // open file
-fd := os.create("_testdata/template1.txt")
+fd := os.create("_testdata/texttpl.out")
 if is_error(fd) {
     fmt.println("error-fd: ", fd)
 }
 
 // create template
 letter := `
-<body>
 Dear {{.Name}},
 {{if .Attended}}
 It was a pleasure to see you at the wedding.
@@ -26,7 +25,6 @@ Thank you for the lovely {{.}}.
 {{end}}
 Best wishes,
 Josie
-</body>
 `
 
 tpl := template.parse("letter", letter)
@@ -55,16 +53,12 @@ fd.close()
 
 // experiments with template object
 tp2 := tpl.clone()
-if is_error(tp2) {
-    fmt.println("ERROR: ", tp2)
-} else {
-    data.Name = "Rocky"
-    res := tp2.execute_string(data)
-    fmt.println("=====")
-    fmt.println(res)
-    fmt.println("=====")
+data.Name = "Rocky"
+res := tp2.execute_string(data)
+fmt.println("=====")
+fmt.println(res)
+fmt.println("=====")
 
-    res = template.execute_string("other_letter", letter, data)
-    fmt.println("****** EXEC ******")
-    fmt.println(res)
-}
+res = template.execute_string("other_letter", letter, data)
+fmt.println("****** EXEC ******")
+fmt.println(res)

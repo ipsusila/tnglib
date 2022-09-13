@@ -36,7 +36,7 @@ var textTplModule = map[string]tengo.Object{
 	},
 }
 
-func makeTxtTemplate(tpl *template.Template) *tengo.ImmutableMap {
+func makeTextTemplate(tpl *template.Template) *tengo.ImmutableMap {
 	return &tengo.ImmutableMap{
 		Value: map[string]tengo.Object{
 			// name() => string
@@ -110,9 +110,9 @@ func textTplParse(args ...tengo.Object) (tengo.Object, error) {
 
 	tpl, err := template.New(name).Parse(str)
 	if err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
-	return makeTxtTemplate(tpl), nil
+	return makeTextTemplate(tpl), nil
 }
 func textTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 	if len(args) != 3 {
@@ -129,13 +129,13 @@ func textTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 
 	tpl, err := template.New(name).Parse(str)
 	if err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 
 	var sb strings.Builder
 	data := tengo.ToInterface(args[2])
 	if err := tpl.Execute(&sb, data); err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 	return &tengo.String{Value: sb.String()}, nil
 }
@@ -147,9 +147,9 @@ func textTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {
 		}
 		t, err := fn()
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeTextTemplate(t), nil
 	}
 }
 
@@ -159,7 +159,7 @@ func textTplST(fn func(string) *template.Template) tengo.CallableFunc {
 		if err != nil {
 			return nil, err
 		}
-		return makeTxtTemplate(fn(name)), nil
+		return makeTextTemplate(fn(name)), nil
 	}
 }
 func textTplAST(fn func(...string) *template.Template) tengo.CallableFunc {
@@ -168,7 +168,7 @@ func textTplAST(fn func(...string) *template.Template) tengo.CallableFunc {
 		if err != nil {
 			return nil, err
 		}
-		return makeTxtTemplate(fn(params...)), nil
+		return makeTextTemplate(fn(params...)), nil
 	}
 }
 func textTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc {
@@ -179,9 +179,9 @@ func textTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc 
 		}
 		t, err := fn(pattern)
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeTextTemplate(t), nil
 	}
 }
 
@@ -193,8 +193,8 @@ func textTplASTE(fn func(...string) (*template.Template, error)) tengo.CallableF
 		}
 		t, err := fn(filenames...)
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeTextTemplate(t), nil
 	}
 }

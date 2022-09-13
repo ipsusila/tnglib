@@ -110,7 +110,7 @@ func htmlTplParse(args ...tengo.Object) (tengo.Object, error) {
 
 	tpl, err := template.New(name).Parse(str)
 	if err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 	return makeHtmlTemplate(tpl), nil
 }
@@ -129,13 +129,13 @@ func htmlTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 
 	tpl, err := template.New(name).Parse(str)
 	if err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 
 	var sb strings.Builder
 	data := tengo.ToInterface(args[2])
 	if err := tpl.Execute(&sb, data); err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 	return &tengo.String{Value: sb.String()}, nil
 }
@@ -147,7 +147,7 @@ func htmlTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {
 		}
 		t, err := fn()
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
 		return makeHtmlTemplate(t), nil
 	}
@@ -179,7 +179,7 @@ func htmlTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc 
 		}
 		t, err := fn(pattern)
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
 		return makeHtmlTemplate(t), nil
 	}
@@ -193,7 +193,7 @@ func htmlTplASTE(fn func(...string) (*template.Template, error)) tengo.CallableF
 		}
 		t, err := fn(filenames...)
 		if err != nil {
-			return wrapError(err), nil
+			return WrapError(err), nil
 		}
 		return makeHtmlTemplate(t), nil
 	}

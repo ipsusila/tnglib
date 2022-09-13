@@ -41,7 +41,7 @@ func (o *Writer) Call(args ...tengo.Object) (tengo.Object, error) {
 
 	n, err := o.Value.Write(data)
 	if err != nil {
-		return wrapError(err), nil
+		return WrapError(err), nil
 	}
 
 	return &tengo.Int{Value: int64(n)}, nil

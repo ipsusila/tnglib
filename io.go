@@ -2,6 +2,7 @@ package tnglib
 
 import (
 	"errors"
+	"io"
 	"os"
 
 	"github.com/d5/tengo/v2"
@@ -15,6 +16,9 @@ const (
 
 // standard io module
 var ioModule = map[string]tengo.Object{
+	"seek_set": &tengo.Int{Value: int64(io.SeekStart)},
+	"seek_cur": &tengo.Int{Value: int64(io.SeekCurrent)},
+	"seek_end": &tengo.Int{Value: int64(io.SeekEnd)},
 	"stdout": &Writer{
 		InterfaceImpl: InterfaceImpl{Name: "stdout"},
 		Value:         os.Stdout,
@@ -22,6 +26,18 @@ var ioModule = map[string]tengo.Object{
 	"stderr": &Writer{
 		InterfaceImpl: InterfaceImpl{Name: "stderr"},
 		Value:         os.Stderr,
+	},
+	"stdin": &Reader{
+		InterfaceImpl: InterfaceImpl{Name: "stdin"},
+		Value:         os.Stdin,
+	},
+	"discard": &Writer{
+		InterfaceImpl: InterfaceImpl{Name: "discard"},
+		Value:         io.Discard,
+	},
+	"new_scanner": &tengo.UserFunction{
+		Name:  "new_scanner",
+		Value: newIoScanner,
 	},
 }
 
