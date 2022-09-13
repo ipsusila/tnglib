@@ -4,7 +4,7 @@ io := import("io")
 template := import("text/template")
 
 // display message
-fmt.println("Hello from tengo")
+//fmt.println("Hello from tengo")
 
 // open file
 fd := os.create("_testdata/template1.txt")
@@ -27,11 +27,11 @@ Best wishes,
 Josie
 `
 
-tpl := template.parse("", letter)
+tpl := template.parse("letter", letter)
 if is_error(tpl) {
     fmt.println("error-tpl: ", tpl)
 }
-fmt.println("TEMPLATE: ", tpl)
+//fmt.println("TEMPLATE: ", tpl)
 
 data := {
     Name: "Kuro",
@@ -50,3 +50,15 @@ if is_error(ret) {
 
 // close file
 fd.close()
+
+// experiments with template object
+tp2 := tpl.clone()
+data.Name = "Rocky"
+res := tp2.execute_string(data)
+fmt.println("=====")
+fmt.println(res)
+fmt.println("=====")
+
+res = template.execute_string("other_letter", letter, data)
+fmt.println("****** EXEC ******")
+fmt.println(res)

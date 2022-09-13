@@ -37,7 +37,7 @@ func (o *Writer) Call(args ...tengo.Object) (tengo.Object, error) {
 	if len(args) != 1 {
 		return nil, tengo.ErrWrongNumArguments
 	}
-	dest, ok := tengo.ToByteSlice(args[0])
+	data, ok := tengo.ToByteSlice(args[0])
 	if !ok {
 		return nil, tengo.ErrInvalidArgumentType{
 			Name:     "first",
@@ -46,7 +46,7 @@ func (o *Writer) Call(args ...tengo.Object) (tengo.Object, error) {
 		}
 	}
 
-	n, err := o.Value.Write(dest)
+	n, err := o.Value.Write(data)
 	if err != nil {
 		return wrapError(err), nil
 	}

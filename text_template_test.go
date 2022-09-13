@@ -10,11 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runTengoScript(t *testing.T, filename string) {
+func runTengoScript(filename string) error {
 	script, err := os.ReadFile(filename)
-	assert.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
-	// create script
+	// create script, load all std modules and tnglib modules
 	s := tengo.NewScript([]byte(script))
 	mod := stdlib.GetModuleMap(stdlib.AllModuleNames()...)
 	lib := tnglib.GetModuleMap("io", "text/template")
@@ -23,15 +25,24 @@ func runTengoScript(t *testing.T, filename string) {
 
 	// compile the source
 	c, err := s.Compile()
-	assert.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	// run the compiled bytecode
 	// a compiled bytecode 'c' can be executed multiple times without re-compiling it
-	if err := c.Run(); err != nil {
-		assert.Error(t, err)
-		panic(err)
-	}
+	return c.Run()
 }
 func TestTextTemplate(t *testing.T) {
-	runTengoScript(t, "_testdata/template1.tengo")
+	err := runTengoScript("_testdata/template1.tengo")
+	assert.NoError(t, err)
+}
+
+func BenchmarkTextTemplate(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		err := runTengoScript("_testdata/template1.tengo")
+		if err != nil {
+			b.Log(err)
+		}
+	}
 }
