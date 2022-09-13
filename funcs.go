@@ -77,7 +77,7 @@ func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
 		}
 		fn(buf, n)
 
-		return tengo.TrueValue, nil
+		return tengo.UndefinedValue, nil
 	}
 }
 

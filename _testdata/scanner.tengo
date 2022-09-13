@@ -1,0 +1,21 @@
+fmt := import("fmt")
+io := import("io")
+os := import("os")
+
+// scan filename
+filename := "_testdata/texttpl.tengo"
+
+// open file
+fd := os.open(filename)
+if is_error(fd) {
+    fmt.println("error-fd: ", fd)
+}
+
+fmt.println("Scan: ", filename)
+s := io.new_scanner(fd)
+for line := 1; s.scan(); line++ {
+    fmt.printf("LINE-%03d: %s\n", line, s.text())
+}
+
+// close fd
+fd.close()
