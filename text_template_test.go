@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runTengoScript(filename string) error {
+func runTengoScript(filename string, modules ...string) error {
 	script, err := os.ReadFile(filename)
 	if err != nil {
 		return err
@@ -19,7 +19,7 @@ func runTengoScript(filename string) error {
 	// create script, load all std modules and tnglib modules
 	s := tengo.NewScript([]byte(script))
 	mod := stdlib.GetModuleMap(stdlib.AllModuleNames()...)
-	lib := tnglib.GetModuleMap("io", "text/template")
+	lib := tnglib.GetModuleMap(modules...)
 	mod.AddMap(lib)
 	s.SetImports(mod)
 
@@ -34,13 +34,13 @@ func runTengoScript(filename string) error {
 	return c.Run()
 }
 func TestTextTemplate(t *testing.T) {
-	err := runTengoScript("_testdata/template1.tengo")
+	err := runTengoScript("_testdata/template1.tengo", "io", "text/template")
 	assert.NoError(t, err)
 }
 
 func BenchmarkTextTemplate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		err := runTengoScript("_testdata/template1.tengo")
+		err := runTengoScript("_testdata/template1.tengo", "io", "text/template")
 		if err != nil {
 			b.Log(err)
 		}

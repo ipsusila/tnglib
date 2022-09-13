@@ -1,42 +1,42 @@
 package tnglib
 
 import (
+	"html/template"
 	"strings"
-	"text/template"
 
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/stdlib"
 )
 
-var textTplModule = map[string]tengo.Object{
+var htmlTplModule = map[string]tengo.Object{
 	// new(string) => template
 	"new": &tengo.UserFunction{
 		Name:  "new",
-		Value: textTplST(template.New),
+		Value: htmlTplST(template.New),
 	},
 	// parse(name, string) => template
 	"parse": &tengo.UserFunction{
 		Name:  "parse",
-		Value: textTplParse,
+		Value: htmlTplParse,
 	},
 	// execute_string(name, string, data) => string
 	"execute_string": &tengo.UserFunction{
 		Name:  "execute_string",
-		Value: textTplParseExec,
+		Value: htmlTplParseExec,
 	},
 	// parse_files(...string) => template
 	"parse_files": &tengo.UserFunction{
 		Name:  "parse_files",
-		Value: textTplASTE(template.ParseFiles),
+		Value: htmlTplASTE(template.ParseFiles),
 	},
 	// parse_glob(string) => template
 	"parse_glob": &tengo.UserFunction{
 		Name:  "parse_glob",
-		Value: textTplSTE(template.ParseGlob),
+		Value: htmlTplSTE(template.ParseGlob),
 	},
 }
 
-func makeTxtTemplate(tpl *template.Template) *tengo.ImmutableMap {
+func makeHtmlTemplate(tpl *template.Template) *tengo.ImmutableMap {
 	return &tengo.ImmutableMap{
 		Value: map[string]tengo.Object{
 			// name() => string
@@ -47,7 +47,7 @@ func makeTxtTemplate(tpl *template.Template) *tengo.ImmutableMap {
 			// clone() => template
 			"clone": &tengo.UserFunction{
 				Name:  "clone",
-				Value: textTplTE(tpl.Clone),
+				Value: htmlTplTE(tpl.Clone),
 			},
 			// defined_templates
 			"defined_templates": &tengo.UserFunction{
@@ -57,32 +57,32 @@ func makeTxtTemplate(tpl *template.Template) *tengo.ImmutableMap {
 			// new(string) => template
 			"new": &tengo.UserFunction{
 				Name:  "new",
-				Value: textTplST(tpl.New),
+				Value: htmlTplST(tpl.New),
 			},
 			// lookup(string) => template
 			"lookup": &tengo.UserFunction{
 				Name:  "lookup",
-				Value: textTplST(tpl.Lookup),
+				Value: htmlTplST(tpl.Lookup),
 			},
 			// option(...string) => template
 			"option": &tengo.UserFunction{
 				Name:  "option",
-				Value: textTplAST(tpl.Option),
+				Value: htmlTplAST(tpl.Option),
 			},
 			// parse(string) => template
 			"parse": &tengo.UserFunction{
 				Name:  "parse",
-				Value: textTplSTE(tpl.Parse),
+				Value: htmlTplSTE(tpl.Parse),
 			},
 			// parse_files(names...) => template
 			"parse_files": &tengo.UserFunction{
 				Name:  "parse_files",
-				Value: textTplASTE(tpl.ParseFiles),
+				Value: htmlTplASTE(tpl.ParseFiles),
 			},
 			// parse_glob(pattern) => template
 			"parse_glob": &tengo.UserFunction{
 				Name:  "parse_glob",
-				Value: textTplSTE(tpl.ParseGlob),
+				Value: htmlTplSTE(tpl.ParseGlob),
 			},
 			// execute(writer, data) => error
 			"execute": &tengo.UserFunction{
@@ -98,7 +98,7 @@ func makeTxtTemplate(tpl *template.Template) *tengo.ImmutableMap {
 	}
 }
 
-func textTplParse(args ...tengo.Object) (tengo.Object, error) {
+func htmlTplParse(args ...tengo.Object) (tengo.Object, error) {
 	name, err := ArgIToString(0, args...)
 	if err != nil {
 		return nil, err
@@ -112,9 +112,9 @@ func textTplParse(args ...tengo.Object) (tengo.Object, error) {
 	if err != nil {
 		return wrapError(err), nil
 	}
-	return makeTxtTemplate(tpl), nil
+	return makeHtmlTemplate(tpl), nil
 }
-func textTplParseExec(args ...tengo.Object) (tengo.Object, error) {
+func htmlTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 	if len(args) != 3 {
 		return nil, tengo.ErrWrongNumArguments
 	}
@@ -140,7 +140,7 @@ func textTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 	return &tengo.String{Value: sb.String()}, nil
 }
 
-func textTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {
+func htmlTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
@@ -149,29 +149,29 @@ func textTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {
 		if err != nil {
 			return wrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeHtmlTemplate(t), nil
 	}
 }
 
-func textTplST(fn func(string) *template.Template) tengo.CallableFunc {
+func htmlTplST(fn func(string) *template.Template) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		name, err := ArgToString(args...)
 		if err != nil {
 			return nil, err
 		}
-		return makeTxtTemplate(fn(name)), nil
+		return makeHtmlTemplate(fn(name)), nil
 	}
 }
-func textTplAST(fn func(...string) *template.Template) tengo.CallableFunc {
+func htmlTplAST(fn func(...string) *template.Template) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		params, err := ArgsToStrings(1, args...)
 		if err != nil {
 			return nil, err
 		}
-		return makeTxtTemplate(fn(params...)), nil
+		return makeHtmlTemplate(fn(params...)), nil
 	}
 }
-func textTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc {
+func htmlTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		pattern, err := ArgToString(args...)
 		if err != nil {
@@ -181,11 +181,11 @@ func textTplSTE(fn func(string) (*template.Template, error)) tengo.CallableFunc 
 		if err != nil {
 			return wrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeHtmlTemplate(t), nil
 	}
 }
 
-func textTplASTE(fn func(...string) (*template.Template, error)) tengo.CallableFunc {
+func htmlTplASTE(fn func(...string) (*template.Template, error)) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		filenames, err := ArgsToStrings(1, args...)
 		if err != nil {
@@ -195,6 +195,6 @@ func textTplASTE(fn func(...string) (*template.Template, error)) tengo.CallableF
 		if err != nil {
 			return wrapError(err), nil
 		}
-		return makeTxtTemplate(t), nil
+		return makeHtmlTemplate(t), nil
 	}
 }

@@ -6,7 +6,8 @@ import (
 
 // BuiltinModules are builtin type standard library modules.
 var BuiltinModules = map[string]map[string]tengo.Object{
-	"text/template": txtTplModule,
+	"text/template": textTplModule,
+	"html/template": htmlTplModule,
 	"io":            ioModule,
 }
 
