@@ -84,6 +84,40 @@ func ArgIToString(idx int, args ...tengo.Object) (string, error) {
 	return str, nil
 }
 
+// ArgToByteSlice convert tengo function call arguments to []byte.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgToByteSlice(args ...tengo.Object) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, tengo.ErrWrongNumArguments
+	}
+	data, ok := tengo.ToByteSlice(args[0])
+	if !ok {
+		return nil, tengo.ErrInvalidArgumentType{
+			Name:     "first",
+			Expected: "bytes(compatible)",
+			Found:    args[0].TypeName(),
+		}
+	}
+	return data, nil
+}
+
+// ArgIToByteSlice convert tengo function call arguments to []byte.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgIToByteSlice(idx int, args ...tengo.Object) ([]byte, error) {
+	if idx >= len(args) {
+		return nil, tengo.ErrWrongNumArguments
+	}
+	data, ok := tengo.ToByteSlice(args[idx])
+	if !ok {
+		return nil, tengo.ErrInvalidArgumentType{
+			Name:     fmt.Sprintf("arg[%d]", idx),
+			Expected: "bytes(compatible)",
+			Found:    args[idx].TypeName(),
+		}
+	}
+	return data, nil
+}
+
 // ArgsToStrings convert tengo function call arguments to string slice.
 // If the argument count is less than minArg, it will return ErrWrongNumArguments
 func ArgsToStrings(minArg int, args ...tengo.Object) ([]string, error) {

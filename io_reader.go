@@ -6,15 +6,15 @@ import (
 	"github.com/d5/tengo/v2"
 )
 
-// Writer represents a user function.
-type Writer struct {
+// Reader represents a user function.
+type Reader struct {
 	InterfaceImpl
-	Value io.Writer
+	Value io.Reader
 }
 
 // Copy returns a copy of the type.
-func (o *Writer) Copy() tengo.Object {
-	return &Writer{
+func (o *Reader) Copy() tengo.Object {
+	return &Reader{
 		InterfaceImpl: InterfaceImpl{
 			Name: o.Name,
 		},
@@ -24,8 +24,8 @@ func (o *Writer) Copy() tengo.Object {
 
 // Equals returns true if the value of the type is equal to the value of
 // another object.
-func (o *Writer) Equals(v tengo.Object) bool {
-	an, ok := v.(*Writer)
+func (o *Reader) Equals(v tengo.Object) bool {
+	an, ok := v.(*Reader)
 	if !ok {
 		return false
 	}
@@ -33,13 +33,13 @@ func (o *Writer) Equals(v tengo.Object) bool {
 }
 
 // Call invokes a user function.
-func (o *Writer) Call(args ...tengo.Object) (tengo.Object, error) {
+func (o *Reader) Call(args ...tengo.Object) (tengo.Object, error) {
 	data, err := ArgToByteSlice(args...)
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := o.Value.Write(data)
+	n, err := o.Value.Read(data)
 	if err != nil {
 		return wrapError(err), nil
 	}
@@ -48,6 +48,6 @@ func (o *Writer) Call(args ...tengo.Object) (tengo.Object, error) {
 }
 
 // CanCall returns whether the Object can be Called.
-func (o *Writer) IsFalsy() bool {
+func (o *Reader) IsFalsy() bool {
 	return o.Value == nil || o.Name == ""
 }
