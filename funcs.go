@@ -1,6 +1,7 @@
 package tnglib
 
 import (
+	"context"
 	"io"
 	"strings"
 	"time"
@@ -8,8 +9,8 @@ import (
 	"github.com/d5/tengo/v2"
 )
 
-// FuncWIE convert any function(io.Writer, interface{}) error to tengo.CallableFunc
-func FuncWIE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
+// FuncAWARE convert any function(io.Writer, interface{}) error to tengo.CallableFunc
+func FuncAWARE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 2 {
 			return nil, tengo.ErrWrongNumArguments
@@ -34,8 +35,8 @@ func FuncWIE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 	}
 }
 
-// FuncWISE convert any function(io.Writer, interface{}) error to tengo.CallableFunc
-func FuncWISE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
+// FuncAWAREs convert any function(io.Writer, interface{}) error to tengo.CallableFunc
+func FuncAWAREs(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 1 {
 			return nil, tengo.ErrWrongNumArguments
@@ -46,7 +47,11 @@ func FuncWISE(fn func(w io.Writer, data any) error) tengo.CallableFunc {
 		if err := fn(&sb, da); err != nil {
 			return WrapError(err), nil
 		}
-		return &tengo.String{Value: sb.String()}, nil
+		s := sb.String()
+		if len(s) > tengo.MaxStringLen {
+			return nil, tengo.ErrStringLimit
+		}
+		return &tengo.String{Value: s}, nil
 	}
 }
 
@@ -57,13 +62,17 @@ func FuncARBs(fn func() []byte) tengo.CallableFunc {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
-		return &tengo.Bytes{Value: fn()}, nil
+		b := fn()
+		if len(b) > tengo.MaxBytesLen {
+			return nil, tengo.ErrBytesLimit
+		}
+		return &tengo.Bytes{Value: b}, nil
 	}
 }
 
-// FuncBI transform a function of 'func([]byte, int)' signature into
+// FuncABsIR transform a function of 'func([]byte, int)' signature into
 // CallableFunc type.
-func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
+func FuncABsIR(fn func([]byte, int)) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 2 {
 			return nil, tengo.ErrWrongNumArguments
@@ -82,21 +91,9 @@ func FuncBI(fn func([]byte, int)) tengo.CallableFunc {
 	}
 }
 
-// FuncE transform a function of 'func([]byte, int)' signature into
+// FuncATBR transform a function of 'func() (time.Time, bool)' signature into
 // CallableFunc type.
-func FuncE(fn func() error) tengo.CallableFunc {
-	return func(args ...tengo.Object) (tengo.Object, error) {
-		if len(args) != 0 {
-			return nil, tengo.ErrWrongNumArguments
-		}
-
-		return WrapError(fn()), nil
-	}
-}
-
-// FuncTB transform a function of 'func([]byte, int)' signature into
-// CallableFunc type.
-func FuncTB(fn func() (time.Time, bool)) tengo.CallableFunc {
+func FuncATBR(fn func() (time.Time, bool)) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
@@ -116,22 +113,9 @@ func FuncTB(fn func() (time.Time, bool)) tengo.CallableFunc {
 	}
 }
 
-// FuncU transform a function of 'func([]byte, int)' signature into
+// FuncAIRI transform a function of 'func(any) any' signature into
 // CallableFunc type.
-func FuncU(fn func()) tengo.CallableFunc {
-	return func(args ...tengo.Object) (tengo.Object, error) {
-		if len(args) != 0 {
-			return nil, tengo.ErrWrongNumArguments
-		}
-		fn()
-
-		return tengo.UndefinedValue, nil
-	}
-}
-
-// FuncII transform a function of 'func([]byte, int)' signature into
-// CallableFunc type.
-func FuncII(fn func(any) any) tengo.CallableFunc {
+func FuncAIRI(fn func(any) any) tengo.CallableFunc {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) != 1 {
 			return nil, tengo.ErrWrongNumArguments
@@ -140,5 +124,121 @@ func FuncII(fn func(any) any) tengo.CallableFunc {
 		res := fn(arg)
 
 		return tengo.FromInterface(res)
+	}
+}
+
+// FuncAISRS transform a function of 'func(int, string) string' signature into
+// CallableFunc type.
+func FuncAISRS(fn func(int, string) string) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		i, err := ArgIToInt(0, args...)
+		if err != nil {
+			return nil, err
+		}
+		s, err := ArgIToString(1, args...)
+		if err != nil {
+			return nil, err
+		}
+		res := fn(i, s)
+		if len(res) > tengo.MaxStringLen {
+			return nil, tengo.ErrStringLimit
+		}
+		return &tengo.String{Value: res}, nil
+	}
+}
+
+func FuncAISARSAE(fn func(int, string, interface{}) (string, []interface{}, error)) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		if len(args) != 3 {
+			return nil, tengo.ErrWrongNumArguments
+		}
+		i, err := ArgIToInt(0, args...)
+		if err != nil {
+			return nil, err
+		}
+		s, err := ArgIToString(1, args...)
+		if err != nil {
+			return nil, err
+		}
+		v := tengo.ToInterface(args[2])
+
+		rs, ra, err := fn(i, s, v)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		if len(rs) > tengo.MaxStringLen {
+			return nil, tengo.ErrStringLimit
+		}
+		r0 := &tengo.String{Value: rs}
+		r1, err := tengo.FromInterface(ra)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		return &tengo.Array{Value: []tengo.Object{r0, r1}}, nil
+	}
+}
+
+func FuncASVRSAE(fn func(string, ...interface{}) (string, []interface{}, error)) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		s, err := ArgIToString(0, args...)
+		if err != nil {
+			return nil, err
+		}
+		iargs := []interface{}{}
+		for i := 1; i < len(args); i++ {
+			iargs = append(iargs, tengo.ToInterface(args[i]))
+		}
+		rs, ra, err := fn(s, iargs...)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		if len(rs) > tengo.MaxStringLen {
+			return nil, tengo.ErrStringLimit
+		}
+		r0 := &tengo.String{Value: rs}
+		r1, err := tengo.FromInterface(ra)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		return &tengo.Array{Value: []tengo.Object{r0, r1}}, nil
+	}
+}
+func FuncASARSAE(fn func(string, interface{}) (string, []interface{}, error)) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		if len(args) != 2 {
+			return nil, tengo.ErrWrongNumArguments
+		}
+		s, err := ArgIToString(0, args...)
+		if err != nil {
+			return nil, err
+		}
+		v := tengo.ToInterface(args[1])
+
+		rs, ra, err := fn(s, v)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		if len(rs) > tengo.MaxStringLen {
+			return nil, tengo.ErrStringLimit
+		}
+		r0 := &tengo.String{Value: rs}
+		r1, err := tengo.FromInterface(ra)
+		if err != nil {
+			return WrapError(err), nil
+		}
+		return &tengo.Array{Value: []tengo.Object{r0, r1}}, nil
+	}
+}
+
+// FuncACRE transform a function of 'func(ctx) error' signature into
+// CallableFunc type.
+func FuncACRE(fn func(context.Context) error) tengo.CallableFunc {
+	return func(args ...tengo.Object) (tengo.Object, error) {
+		ctx, err := ArgToContext(args...)
+		if err != nil {
+			return nil, err
+		}
+		err = fn(ctx.Value)
+		return WrapError(err), nil
 	}
 }

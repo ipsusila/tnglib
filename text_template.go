@@ -87,12 +87,12 @@ func makeTextTemplate(tpl *template.Template) *tengo.ImmutableMap {
 			// execute(writer, data) => error
 			"execute": &tengo.UserFunction{
 				Name:  "execute",
-				Value: FuncWIE(tpl.Execute),
+				Value: FuncAWARE(tpl.Execute),
 			},
 			// execute_string(writer, data) => error
 			"execute_string": &tengo.UserFunction{
 				Name:  "execute_string",
-				Value: FuncWISE(tpl.Execute),
+				Value: FuncAWAREs(tpl.Execute),
 			},
 		},
 	}
@@ -137,7 +137,11 @@ func textTplParseExec(args ...tengo.Object) (tengo.Object, error) {
 	if err := tpl.Execute(&sb, data); err != nil {
 		return WrapError(err), nil
 	}
-	return &tengo.String{Value: sb.String()}, nil
+	s := sb.String()
+	if len(s) > tengo.MaxStringLen {
+		return nil, tengo.ErrStringLimit
+	}
+	return &tengo.String{Value: s}, nil
 }
 
 func textTplTE(fn func() (*template.Template, error)) tengo.CallableFunc {

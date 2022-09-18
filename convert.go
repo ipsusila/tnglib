@@ -41,7 +41,7 @@ func ArgIToString(idx int, args ...tengo.Object) (string, error) {
 	return str, nil
 }
 
-// ArgIToInt convert tengo function call arguments to string.
+// ArgIToInt convert tengo function call arguments to int.
 // If the argument count is not equal to one, it will return ErrWrongNumArguments
 func ArgIToInt(idx int, args ...tengo.Object) (int, error) {
 	if idx >= len(args) {
@@ -56,6 +56,23 @@ func ArgIToInt(idx int, args ...tengo.Object) (int, error) {
 		}
 	}
 	return n, nil
+}
+
+// ArgIToBool convert tengo function call arguments to boolean.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgIToBool(idx int, args ...tengo.Object) (bool, error) {
+	if idx >= len(args) {
+		return false, tengo.ErrWrongNumArguments
+	}
+	v, ok := tengo.ToBool(args[idx])
+	if !ok {
+		return false, tengo.ErrInvalidArgumentType{
+			Name:     fmt.Sprintf("arg[%d]", idx),
+			Expected: "bool(compatible)",
+			Found:    args[idx].TypeName(),
+		}
+	}
+	return v, nil
 }
 
 // ArgIToInt64 convert tengo function call arguments to string.
@@ -179,4 +196,46 @@ func ArgIToTime(idx int, args ...tengo.Object) (time.Time, error) {
 		}
 	}
 	return tm, nil
+}
+
+// ObjectMapToMap converts map[string]tengo.Object to map[string]interface{}
+func ObjectMapToMap(v map[string]tengo.Object) map[string]interface{} {
+	m := make(map[string]interface{})
+	for key, val := range v {
+		m[key] = tengo.ToInterface(val)
+	}
+	return m
+}
+
+// MapToObject convert map[string]interface{} to tengo.Object
+func MapToObject(v map[string]interface{}) (tengo.Object, error) {
+	kv := make(map[string]tengo.Object)
+	for vk, vv := range v {
+		vo, err := tengo.FromInterface(vv)
+		if err != nil {
+			return nil, err
+		}
+		kv[vk] = vo
+	}
+	return &tengo.Map{Value: kv}, nil
+}
+
+// ArgIToMap convert argument to context value
+func ArgIToMap(idx int, args ...tengo.Object) (map[string]interface{}, error) {
+	if idx >= len(args) {
+		return nil, tengo.ErrWrongNumArguments
+	}
+
+	switch m := args[idx].(type) {
+	case *tengo.Map:
+		return ObjectMapToMap(m.Value), nil
+	case *tengo.ImmutableMap:
+		return ObjectMapToMap(m.Value), nil
+	}
+
+	return nil, tengo.ErrInvalidArgumentType{
+		Name:     fmt.Sprintf("arg[%d]", idx),
+		Expected: "map(compatible)",
+		Found:    args[idx].TypeName(),
+	}
 }

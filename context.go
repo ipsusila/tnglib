@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/d5/tengo/v2"
+	"github.com/d5/tengo/v2/stdlib"
 )
 
 // standard context module
@@ -36,22 +37,48 @@ var ctxModule = map[string]tengo.Object{
 	},
 }
 
+// Context is context.Context wrapper which is accessible from tengo
 type Context struct {
 	tengo.ImmutableMap
 	Value context.Context
 }
 
+// NewContext creates scriptable context.Context
+func NewContext(ctx context.Context) *Context {
+	return &Context{
+		Value: ctx,
+		ImmutableMap: tengo.ImmutableMap{
+			Value: map[string]tengo.Object{
+				"value": &tengo.UserFunction{
+					Name:  "value",
+					Value: FuncAIRI(ctx.Value),
+				},
+				"err": &tengo.UserFunction{
+					Name:  "err",
+					Value: stdlib.FuncARE(ctx.Err),
+				},
+				"deadline": &tengo.UserFunction{
+					Name:  "deadline",
+					Value: FuncATBR(ctx.Deadline),
+				},
+			},
+		},
+	}
+}
+
+// TypeName return context
 func (c *Context) TypeName() string {
 	return "context"
 }
 
+// String return string representation of the context
 func (c *Context) String() string {
 	return fmt.Sprintf("<context>:%v, map: %s", c.Value, c.ImmutableMap.String())
 }
 
 // Copy returns a copy of the type.
 func (c *Context) Copy() tengo.Object {
-	return &Context{Value: c.Value}
+	return &Context{Value: c.Value, ImmutableMap: c.ImmutableMap}
 }
 
 // IsFalsy returns true if the value of the type is falsy.
@@ -77,7 +104,7 @@ func ctxFunc(fn func() context.Context) tengo.CallableFunc {
 		if len(args) != 0 {
 			return nil, tengo.ErrWrongNumArguments
 		}
-		return makeCtx(fn()), nil
+		return NewContext(fn()), nil
 	}
 }
 
@@ -143,38 +170,16 @@ func ctxWithValue(args ...tengo.Object) (tengo.Object, error) {
 	key := tengo.ToInterface(args[1])
 	val := tengo.ToInterface(args[2])
 	ctx := context.WithValue(parent.Value, key, val)
-	return makeCtx(ctx), nil
+	return NewContext(ctx), nil
 }
 
 func makeCtxReturn(ctx context.Context, cancel context.CancelFunc) *tengo.ImmutableMap {
 	return &tengo.ImmutableMap{
 		Value: map[string]tengo.Object{
-			"ctx": makeCtx(ctx),
+			"ctx": NewContext(ctx),
 			"cancel": &tengo.UserFunction{
 				Name:  "cancel",
-				Value: FuncU(cancel),
-			},
-		},
-	}
-}
-
-func makeCtx(ctx context.Context) *Context {
-	return &Context{
-		Value: ctx,
-		ImmutableMap: tengo.ImmutableMap{
-			Value: map[string]tengo.Object{
-				"value": &tengo.UserFunction{
-					Name:  "value",
-					Value: FuncII(ctx.Value),
-				},
-				"err": &tengo.UserFunction{
-					Name:  "err",
-					Value: FuncE(ctx.Err),
-				},
-				"deadline": &tengo.UserFunction{
-					Name:  "deadline",
-					Value: FuncTB(ctx.Deadline),
-				},
+				Value: stdlib.FuncAR(cancel),
 			},
 		},
 	}
