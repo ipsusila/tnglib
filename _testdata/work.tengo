@@ -1,0 +1,8 @@
+tm := import("times")
+fmt := import("fmt")
+
+fmt.print("# Run in script, start task...: ")
+fmt.println(tm.time_format(tm.now(), tm.format_rfc3339))
+tm.sleep(3 * tm.second)
+fmt.print("  Done                        : ")
+fmt.println(tm.time_format(tm.now(), tm.format_rfc3339))

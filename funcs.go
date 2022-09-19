@@ -242,3 +242,15 @@ func FuncACRE(fn func(context.Context) error) tengo.CallableFunc {
 		return WrapError(err), nil
 	}
 }
+
+// FuncASRI transform a function of 'func(string) int' signature
+// into CallableFunc type.
+func FuncASRI(fn func(string) int) tengo.CallableFunc {
+	return func(args ...tengo.Object) (ret tengo.Object, err error) {
+		s, err := ArgToString(args...)
+		if err != nil {
+			return nil, err
+		}
+		return &tengo.Int{Value: int64(fn(s))}, nil
+	}
+}

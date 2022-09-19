@@ -3,9 +3,7 @@ sql := import("sqldb")
 context := import("context")
 
 // create table
-do_query := func(ctx) {
-    db := sql.database("testing")
-
+do_query := func(ctx, db) {
     // create table 
     ret := db.exec(ctx, "CREATE TABLE test123(id INTEGER, value TEXT, PRIMARY KEY(id))")
     fmt.println("Exec CREATE TABLE: ", ret)
@@ -43,8 +41,14 @@ do_query := func(ctx) {
 // return will be an object with .ctx and .cancel
 cv := context.with_timeout(context.background(), "5s")
 
+// open database connection (ctx, driver, dsn)
+db := sql.connect(cv.ctx, "sqlite", ":memory:")
+
 // call query
-do_query(cv.ctx)
+do_query(cv.ctx, db)
+
+// close connection
+db.close()
 
 // call cancel function
 cv.cancel()

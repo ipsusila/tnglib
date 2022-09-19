@@ -29,8 +29,6 @@ func GetModuleMap(names ...string) *tengo.ModuleMap {
 	for _, name := range names {
 		if mod, err := modsLib.Entry(name); err == nil {
 			modules.AddBuiltinModule(name, mod)
-		} else {
-			panic(err)
 		}
 		/*
 			if mod := SourceModules[name]; mod != "" {
@@ -39,4 +37,9 @@ func GetModuleMap(names ...string) *tengo.ModuleMap {
 		*/
 	}
 	return modules
+}
+
+// AllModuleNames return all registered modules
+func AllModuleNames() []string {
+	return modsLib.Keys()
 }

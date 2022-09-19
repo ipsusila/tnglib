@@ -36,10 +36,22 @@ var (
 		"level_serializable":     &tengo.Int{Value: int64(sql.LevelSerializable)},
 		"level_linearizable":     &tengo.Int{Value: int64(sql.LevelLinearizable)},
 
+		// connect(ctx, string, string) => DB/error
+		"connect": &tengo.UserFunction{
+			Name:  "connect",
+			Value: connectFunc(),
+		},
+
+		// open(string, string) => DB/error
+		"open": &tengo.UserFunction{
+			Name:  "open",
+			Value: openFunc(),
+		},
+
 		// database(string) => db
 		"database": &tengo.UserFunction{
 			Name:  "database",
-			Value: databaseFunc(),
+			Value: databaseFunc(false),
 		},
 
 		// queryer(string) => queryer
@@ -52,6 +64,11 @@ var (
 		"execer": &tengo.UserFunction{
 			Name:  "execer",
 			Value: execerFunc(),
+		},
+
+		"bind_type": &tengo.UserFunction{
+			Name:  "bind_type",
+			Value: tnglib.FuncASRI(sqlx.BindType),
 		},
 
 		// bind_named(int, string, interface{}) => ([]{string, []interface{}}, error)
