@@ -1,0 +1,48 @@
+fmt := import("fmt")
+sql := import("sqldb")
+context := import("context")
+
+// create table
+do_query := func(ctx) {
+    db := sql.database("testing")
+
+    // create table 
+    ret := db.exec(ctx, "CREATE TABLE test123(id INTEGER, value TEXT, PRIMARY KEY(id))")
+    fmt.println("Exec CREATE TABLE: ", ret)
+
+    // insert value
+    ret = db.exec(ctx, "INSERT INTO test123(id, value) VALUES(?, ?)", 100, "SQL-DB")
+    fmt.println("Exec INSERT: ", ret)
+
+    ret = db.exec(ctx, "INSERT INTO test123(id, value) VALUES(?, ?)", 101, "Next Value")
+    fmt.println("Exec INSERT: ", ret)
+
+    // one data, access field with ALIAS column name
+    ret = db.one(ctx, "SELECT id, value AS txtval, CURRENT_TIMESTAMP AS now FROM test123 WHERE id=? LIMIT 1", 100)
+    fmt.println("Query ONE: ", ret)
+    fmt.println("  IDV=", ret.id)
+    fmt.println("  VAL=", ret.txtval)
+    fmt.println("  NOW=", ret.now)
+
+    // does not exists, return FALSE
+    ret = db.one(ctx, "SELECT * FROM test123 WHERE id=? LIMIT 1", 1000)
+    fmt.println("Query ONE (not exists): ", ret)
+
+    // many data
+    ret = db.many(ctx, "SELECT * FROM test123")
+    fmt.println("Query Many: ", ret)
+
+    // drop table
+    ret = db.exec(ctx, "DROP TABLE test123")
+    fmt.println("Exec DROP TABLE: ", ret)
+}
+
+// create context
+// return .ctx and .cancel
+cv := context.with_timeout(context.background(), "5s")
+
+// call query
+do_query(cv.ctx)
+
+// call cancel context
+cv.cancel()
