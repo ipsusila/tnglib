@@ -1,12 +1,10 @@
 package script
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 	"time"
+
+	"github.com/ipsusila/tnglib"
 )
 
 // Config stores configuration
@@ -34,19 +32,10 @@ func DefaultConfig() *Config {
 // Supported formats: json
 func NewFileConfig(filename string) (*Config, error) {
 	conf := DefaultConfig()
-	ext := strings.ToLower(filepath.Ext(filename))
-	switch ext {
-	case ".json":
-		fd, err := os.Open(filename)
-		if err != nil {
-			return nil, err
-		}
-		dec := json.NewDecoder(fd)
-		if err := dec.Decode(conf); err != nil {
-			return nil, err
-		}
+	if err := tnglib.LoadConfigTo(filename, conf); err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("config file `%s`: %w", filename, ErrUnsupportedConfigFormat)
+	return conf, nil
 }
 
 // MaxTimeout return maximum execution time in time.Duration
