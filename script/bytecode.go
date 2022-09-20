@@ -2,6 +2,7 @@ package script
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -29,9 +30,10 @@ type header struct {
 	Conf          Config
 	Variables     map[string]interface{}
 	GlobalIndexes map[string]int
+	GlobalSize    int
 }
 
-type compiledBytecode struct {
+type bytecodeEntry struct {
 	hdr      header
 	bytecode *tengo.Bytecode
 	globals  []tengo.Object
@@ -40,7 +42,7 @@ type compiledBytecode struct {
 
 // BytecodeFromSource compiles source file and then store it to bytecode
 func BytecodeFromSource(filename string, conf *Config) (Entry, error) {
-	bc := compiledBytecode{
+	bc := bytecodeEntry{
 		hdr: header{
 			Conf: *conf,
 		},
@@ -60,7 +62,7 @@ func BytecodeFromFile(filename string) (Entry, error) {
 	}
 	defer fd.Close()
 
-	bc := compiledBytecode{}
+	bc := bytecodeEntry{}
 	if err := bc.Decode(fd); err != nil {
 		return nil, err
 	}
@@ -71,7 +73,7 @@ func BytecodeFromFile(filename string) (Entry, error) {
 // BytecodeFromBytes convert byte array to byte code
 func BytecodeFromBytes(input []byte) (Entry, error) {
 	r := bytes.NewReader(input)
-	bc := compiledBytecode{}
+	bc := bytecodeEntry{}
 	if err := bc.Decode(r); err != nil {
 		return nil, err
 	}
@@ -79,16 +81,25 @@ func BytecodeFromBytes(input []byte) (Entry, error) {
 	return &bc, nil
 }
 
-func (b *compiledBytecode) Configuration() Config {
+// BytecodeFromString convert base-64 encoded string to bytecode
+func BytecodeFromString(b64 string) (Entry, error) {
+	input, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return nil, err
+	}
+	return BytecodeFromBytes(input)
+}
+
+func (b *bytecodeEntry) Configuration() Config {
 	return b.hdr.Conf
 }
-func (b *compiledBytecode) CompiledAt() time.Time {
+func (b *bytecodeEntry) CompiledAt() time.Time {
 	return b.hdr.CompiledAt
 }
-func (b *compiledBytecode) Age() time.Duration {
+func (b *bytecodeEntry) Age() time.Duration {
 	return time.Since(b.hdr.CompiledAt)
 }
-func (b *compiledBytecode) Runnable() Runnable {
+func (b *bytecodeEntry) Runnable() Runnable {
 	clone := &bytecodeX{
 		globalIndexes: b.hdr.GlobalIndexes,
 		bytecode:      b.bytecode,
@@ -103,7 +114,7 @@ func (b *compiledBytecode) Runnable() Runnable {
 	}
 	return clone
 }
-func (b *compiledBytecode) Recompile() error {
+func (b *bytecodeEntry) Recompile() error {
 	if b.filename == "" {
 		// not supported
 		return ErrBytecodeNotRecompilable
@@ -120,7 +131,7 @@ func (b *compiledBytecode) Recompile() error {
 	return nil
 }
 
-func (b *compiledBytecode) AddMap(vars map[string]interface{}) {
+func (b *bytecodeEntry) AddMap(vars map[string]interface{}) {
 	if len(b.hdr.Variables) == 0 {
 		b.hdr.Variables = make(map[string]interface{})
 	}
@@ -128,16 +139,16 @@ func (b *compiledBytecode) AddMap(vars map[string]interface{}) {
 		b.hdr.Variables[name] = val
 	}
 }
-func (b *compiledBytecode) Add(name string, value interface{}) {
+func (b *bytecodeEntry) Add(name string, value interface{}) {
 	if len(b.hdr.Variables) == 0 {
 		b.hdr.Variables = make(map[string]interface{})
 	}
 	b.hdr.Variables[name] = value
 }
-func (b *compiledBytecode) SetMaxAllocs(n int64) {
+func (b *bytecodeEntry) SetMaxAllocs(n int64) {
 	b.hdr.Conf.MaxAllocs = n
 }
-func (b *compiledBytecode) Remove(name string) bool {
+func (b *bytecodeEntry) Remove(name string) bool {
 	if _, ok := b.hdr.Variables[name]; !ok {
 		return false
 	}
@@ -145,7 +156,7 @@ func (b *compiledBytecode) Remove(name string) bool {
 	return true
 }
 
-func (b *compiledBytecode) makeSymbolTable() (*tengo.SymbolTable, error) {
+func (b *bytecodeEntry) makeSymbolTable() (*tengo.SymbolTable, error) {
 	var names []string
 	for name := range b.hdr.Variables {
 		names = append(names, name)
@@ -169,7 +180,7 @@ func (b *compiledBytecode) makeSymbolTable() (*tengo.SymbolTable, error) {
 	return symbolTable, nil
 }
 
-func (b *compiledBytecode) makeGlobals() ([]tengo.Object, error) {
+func (b *bytecodeEntry) makeGlobals() ([]tengo.Object, error) {
 	globals := make([]tengo.Object, tengo.GlobalsSize)
 	maxIdx := -1
 	for name, idx := range b.hdr.GlobalIndexes {
@@ -183,11 +194,11 @@ func (b *compiledBytecode) makeGlobals() ([]tengo.Object, error) {
 		}
 	}
 	if maxIdx >= 0 {
-		globals = globals[:maxIdx+1]
+		globals = globals[:b.hdr.GlobalSize]
 	}
 	return globals, nil
 }
-func (b *compiledBytecode) Compile(conf *Config, input []byte) error {
+func (b *bytecodeEntry) Compile(conf *Config, input []byte) error {
 	// add variables from configuration
 	b.AddMap(conf.InitVars)
 
@@ -219,8 +230,8 @@ func (b *compiledBytecode) Compile(conf *Config, input []byte) error {
 		defImpDir = filepath.Dir(b.filename)
 	}
 
-	modules := GetModuleMap(conf.Modules)
-	c := tengo.NewCompiler(srcFile, symbolTable, nil, modules, os.Stdout)
+	modules := GetImportableModuleMap(conf.Modules)
+	c := tengo.NewCompiler(srcFile, symbolTable, nil, modules, nil)
 	c.SetImportFileExt(conf.ImportFileExtensions()...)
 	c.EnableFileImport(conf.EnableFileImport)
 	c.SetImportDir(conf.ImportDirectory(defImpDir))
@@ -240,6 +251,8 @@ func (b *compiledBytecode) Compile(conf *Config, input []byte) error {
 		}
 	}
 
+	// update global symbol size
+	b.hdr.GlobalSize = symbolTable.MaxSymbols() + 1
 	globals, err := b.makeGlobals()
 	if err != nil {
 		return err
@@ -253,11 +266,11 @@ func (b *compiledBytecode) Compile(conf *Config, input []byte) error {
 	return nil
 }
 
-func (b *compiledBytecode) Encode(w io.Writer) error {
+func (b *bytecodeEntry) Encode(w io.Writer) error {
 	// TODO: specify version
 	return b.encode(w, verVal[:])
 }
-func (b *compiledBytecode) Decode(r io.Reader) error {
+func (b *bytecodeEntry) Decode(r io.Reader) error {
 	// 1. Get magic no
 	mn := [1]byte{}
 	n, err := r.Read(mn[:])
@@ -294,14 +307,13 @@ func (b *compiledBytecode) Decode(r io.Reader) error {
 	}
 
 	// 4. Get JSON config
-	var hdr header
-	if err := json.Unmarshal(js, &hdr); err != nil {
+	if err := json.Unmarshal(js, &b.hdr); err != nil {
 		return err
 	}
 
 	// 5. decode bytecode
 	bytecode := &tengo.Bytecode{}
-	modules := GetModuleMap(hdr.Conf.Modules)
+	modules := GetImportableModuleMap(b.hdr.Conf.Modules)
 	if err := bytecode.Decode(r, modules); err != nil {
 		return err
 	}
@@ -312,7 +324,6 @@ func (b *compiledBytecode) Decode(r io.Reader) error {
 		return err
 	}
 
-	b.hdr = hdr
 	b.bytecode = bytecode
 	b.globals = globals
 	b.filename = "" // not recompilable source
@@ -320,7 +331,7 @@ func (b *compiledBytecode) Decode(r io.Reader) error {
 	return nil
 }
 
-func (b *compiledBytecode) encode(w io.Writer, ver []byte) error {
+func (b *bytecodeEntry) encode(w io.Writer, ver []byte) error {
 	if b.bytecode == nil {
 		return ErrBytecodeNotReady
 	}
@@ -354,7 +365,7 @@ func (b *compiledBytecode) encode(w io.Writer, ver []byte) error {
 }
 
 // SaveTo saves bytecode to file
-func (b *compiledBytecode) SaveTo(filename string) error {
+func (b *bytecodeEntry) SaveTo(filename string) error {
 	fw, err := os.Create(filename)
 	if err != nil {
 		return nil
@@ -362,4 +373,11 @@ func (b *compiledBytecode) SaveTo(filename string) error {
 	defer fw.Close()
 
 	return b.Encode(fw)
+}
+func (b *bytecodeEntry) String() string {
+	buf := bytes.Buffer{}
+	if err := b.Encode(&buf); err != nil {
+		return "<ERROR:" + err.Error() + ">"
+	}
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }

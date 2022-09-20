@@ -41,6 +41,23 @@ func ArgIToString(idx int, args ...tengo.Object) (string, error) {
 	return str, nil
 }
 
+// ArgToInt convert tengo function call arguments to int.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgToInt(args ...tengo.Object) (int, error) {
+	if len(args) != 1 {
+		return 0, tengo.ErrWrongNumArguments
+	}
+	n, ok := tengo.ToInt(args[0])
+	if !ok {
+		return 0, tengo.ErrInvalidArgumentType{
+			Name:     "first",
+			Expected: "integer(compatible)",
+			Found:    args[0].TypeName(),
+		}
+	}
+	return n, nil
+}
+
 // ArgIToInt convert tengo function call arguments to int.
 // If the argument count is not equal to one, it will return ErrWrongNumArguments
 func ArgIToInt(idx int, args ...tengo.Object) (int, error) {
@@ -220,6 +237,51 @@ func MapToObject(v map[string]interface{}) (tengo.Object, error) {
 	return &tengo.Map{Value: kv}, nil
 }
 
+// StringsToObject convert []string to tengo.Object
+func StringsToObject(items []string) tengo.Object {
+	vals := []tengo.Object{}
+	for _, item := range items {
+		vals = append(vals, &tengo.String{Value: item})
+	}
+	return &tengo.ImmutableArray{Value: vals}
+}
+
+// ObjectToStrings convert tengo.Object to []string
+func ObjectToStrings(obj tengo.Object) ([]string, error) {
+	switch v := obj.(type) {
+	case *tengo.ImmutableArray, *tengo.Array:
+		_ = v
+	default:
+		return nil, tengo.ErrInvalidArgumentType{
+			Name:     "arg",
+			Expected: "array(compatible)",
+			Found:    obj.TypeName(),
+		}
+	}
+
+	items := []string{}
+	iter := obj.Iterate()
+	for iter.Next() {
+		v := iter.Value()
+		s, ok := tengo.ToString(v)
+		if !ok {
+			return nil, tengo.ErrInvalidArgumentType{
+				Name:     "arg[i]",
+				Expected: "string(compatible)",
+				Found:    v.TypeName(),
+			}
+		}
+		items = append(items, s)
+	}
+	return items, nil
+}
+func BoolObject(flag bool) tengo.Object {
+	if flag {
+		return tengo.TrueValue
+	}
+	return tengo.FalseValue
+}
+
 // ArgIToMap convert argument to context value
 func ArgIToMap(idx int, args ...tengo.Object) (map[string]interface{}, error) {
 	if idx >= len(args) {
@@ -238,4 +300,27 @@ func ArgIToMap(idx int, args ...tengo.Object) (map[string]interface{}, error) {
 		Expected: "map(compatible)",
 		Found:    args[idx].TypeName(),
 	}
+}
+
+// ArgIToDuration convert i to duriation
+// err1 -> conversion error
+// err2 -> argument mismatch
+func ArgIToDuration(idx int, args ...tengo.Object) (time.Duration, error, error) {
+	if idx >= len(args) {
+		return 0, nil, tengo.ErrWrongNumArguments
+	}
+	var timeout time.Duration
+	nano, ok := tengo.ToInt64(args[idx])
+	if ok {
+		timeout = time.Duration(nano)
+	} else {
+		if str, err := ArgIToString(idx, args...); err != nil {
+			return 0, nil, err
+		} else if duration, err := time.ParseDuration(str); err != nil {
+			return 0, err, nil
+		} else {
+			timeout = duration
+		}
+	}
+	return timeout, nil, nil
 }

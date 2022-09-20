@@ -50,7 +50,7 @@ func exec(fn func(context.Context, string, ...interface{}) (sql.Result, error)) 
 			qargs = append(qargs, tengo.ToInterface(args[i]))
 		}
 
-		res, err := fn(ctx.Value, query, qargs...)
+		res, err := fn(ctx.Ctx, query, qargs...)
 		if err != nil {
 			return tnglib.WrapError(err), nil
 		}

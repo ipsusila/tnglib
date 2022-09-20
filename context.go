@@ -3,7 +3,6 @@ package tnglib
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/d5/tengo/v2"
 	"github.com/d5/tengo/v2/stdlib"
@@ -40,13 +39,13 @@ var ctxModule = map[string]tengo.Object{
 // Context is context.Context wrapper which is accessible from tengo
 type Context struct {
 	tengo.ImmutableMap
-	Value context.Context
+	Ctx context.Context
 }
 
 // NewContext creates scriptable context.Context
 func NewContext(ctx context.Context) *Context {
 	return &Context{
-		Value: ctx,
+		Ctx: ctx,
 		ImmutableMap: tengo.ImmutableMap{
 			Value: map[string]tengo.Object{
 				"value": &tengo.UserFunction{
@@ -73,17 +72,17 @@ func (c *Context) TypeName() string {
 
 // String return string representation of the context
 func (c *Context) String() string {
-	return fmt.Sprintf("<context>:%v, map: %s", c.Value, c.ImmutableMap.String())
+	return fmt.Sprintf("<context>:%v, map: %s", c.Ctx, c.ImmutableMap.String())
 }
 
 // Copy returns a copy of the type.
 func (c *Context) Copy() tengo.Object {
-	return &Context{Value: c.Value, ImmutableMap: c.ImmutableMap}
+	return &Context{Ctx: c.Ctx, ImmutableMap: c.ImmutableMap}
 }
 
 // IsFalsy returns true if the value of the type is falsy.
 func (c *Context) IsFalsy() bool {
-	return c.Value == nil
+	return c.Ctx == nil
 }
 
 // Equals returns true if the value of the type is equal to the value of
@@ -96,7 +95,7 @@ func (c *Context) Equals(x tengo.Object) bool {
 	if !ok {
 		return false
 	}
-	return v.Value == c.Value
+	return v.Ctx == c.Ctx
 }
 
 func ctxFunc(fn func() context.Context) tengo.CallableFunc {
@@ -113,7 +112,7 @@ func ctxWithCancel(args ...tengo.Object) (tengo.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(parent.Value)
+	ctx, cancel := context.WithCancel(parent.Ctx)
 	return makeCtxReturn(ctx, cancel), nil
 }
 
@@ -126,7 +125,7 @@ func ctxWithDeadline(args ...tengo.Object) (tengo.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithDeadline(parent.Value, deadline)
+	ctx, cancel := context.WithDeadline(parent.Ctx, deadline)
 	return makeCtxReturn(ctx, cancel), nil
 }
 
@@ -142,20 +141,14 @@ func ctxWithTimeout(args ...tengo.Object) (tengo.Object, error) {
 	}
 
 	// get timeout value
-	var timeout time.Duration
-	nano, ok := tengo.ToInt64(args[1])
-	if ok {
-		timeout = time.Duration(nano)
-	} else {
-		if str, err := ArgIToString(1, args...); err != nil {
-			return nil, err
-		} else if duration, err := time.ParseDuration(str); err != nil {
-			return WrapError(err), nil
-		} else {
-			timeout = duration
-		}
+	timeout, cverr, argerr := ArgIToDuration(1, args...)
+	if argerr != nil {
+		return nil, err
+	} else if cverr != nil {
+		return WrapError(cverr), nil
 	}
-	ctx, cancel := context.WithTimeout(parent.Value, timeout)
+
+	ctx, cancel := context.WithTimeout(parent.Ctx, timeout)
 	return makeCtxReturn(ctx, cancel), nil
 }
 
@@ -169,7 +162,7 @@ func ctxWithValue(args ...tengo.Object) (tengo.Object, error) {
 	}
 	key := tengo.ToInterface(args[1])
 	val := tengo.ToInterface(args[2])
-	ctx := context.WithValue(parent.Value, key, val)
+	ctx := context.WithValue(parent.Ctx, key, val)
 	return NewContext(ctx), nil
 }
 

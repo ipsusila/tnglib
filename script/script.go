@@ -41,8 +41,9 @@ func RunFileContext(ctx context.Context, filename string, modules ...string) err
 	return err
 }
 
-// GetModuleMap from given modules name
-func GetModuleMap(modules []string) *tengo.ModuleMap {
+// GetImportableModuleMap from given modules name.
+// Search module from stdlib and tnglib
+func GetImportableModuleMap(modules []string) *tengo.ModuleMap {
 	var mod *tengo.ModuleMap
 	if len(modules) > 0 {
 		mod = stdlib.GetModuleMap(modules...)

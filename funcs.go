@@ -99,15 +99,10 @@ func FuncATBR(fn func() (time.Time, bool)) tengo.CallableFunc {
 			return nil, tengo.ErrWrongNumArguments
 		}
 		tm, ok := fn()
-		val := tengo.FalseValue
-		if ok {
-			val = tengo.TrueValue
-		}
-
 		return &tengo.ImmutableMap{
 			Value: map[string]tengo.Object{
 				"time": &tengo.Time{Value: tm},
-				"ok":   val,
+				"ok":   BoolObject(ok),
 			},
 		}, nil
 	}
@@ -238,7 +233,7 @@ func FuncACRE(fn func(context.Context) error) tengo.CallableFunc {
 		if err != nil {
 			return nil, err
 		}
-		err = fn(ctx.Value)
+		err = fn(ctx.Ctx)
 		return WrapError(err), nil
 	}
 }

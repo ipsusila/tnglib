@@ -1,0 +1,24 @@
+fmt := import("fmt")
+email := import("email")
+
+fmt.println("Email: ", email)
+msg := email.new_msg()
+fmt.println("Msg: ", msg)
+
+fmt.println("Msg.charset: ", msg.charset)
+//msg.charset = "TEST edit CHARSET"
+//fmt.println(">Msg: ", msg)
+
+f := email.new_file("/tmp/test-attach.docx")
+fmt.println("File object: ", f)
+f.file_path = "/tmp/file.txt"
+f.name = "file.txt"
+f.inline = true
+fmt.println(">File object: ", f)
+
+dkim := email.new_dkim_sig_options()
+fmt.println("DKIM: ", dkim)
+
+dkim.version = 1000
+dkim.Algo = "TESTING ALGORYTHM"
+fmt.println(">DKIM: ", dkim)

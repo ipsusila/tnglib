@@ -12,4 +12,5 @@ type Entry interface {
 	Runnable() Runnable
 	Recompile() error
 	SaveTo(filename string) error
+	String() string
 }

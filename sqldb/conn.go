@@ -48,7 +48,7 @@ func connFunc(db *sqlx.DB) tengo.CallableFunc {
 		if err != nil {
 			return nil, err
 		}
-		con, err := db.Connx(cv.Value)
+		con, err := db.Connx(cv.Ctx)
 		if err != nil {
 			return tnglib.WrapError(err), nil
 		}

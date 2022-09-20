@@ -13,6 +13,10 @@ import (
 func execScript(t *testing.T, maxConcurrent, n int, timeout time.Duration) {
 	id := "test"
 	conf := script.DefaultConfig()
+	conf.InitVars = map[string]interface{}{
+		"X":       100,
+		"message": "hello world",
+	}
 	conf.Modules = []string{"fmt", "times", "context"}
 	man := script.NewManager()
 	exe := script.NewExecutor(man, maxConcurrent)
@@ -47,10 +51,4 @@ func TestUnlimited(t *testing.T) {
 
 func TestLimited(t *testing.T) {
 	execScript(t, 4, 10, 15*time.Second)
-}
-func TestBytecodeRead(t *testing.T) {
-	by, err := script.BytecodeFromFile("../_testdata/work.out")
-	assert.NoError(t, err)
-	t.Log("Compiled at: ", by.CompiledAt().Format(time.RFC3339))
-	t.Log("Config: ", by.Configuration())
 }

@@ -1,5 +1,16 @@
 tm := import("times")
 fmt := import("fmt")
+context := import("context")
+
+// context test
+bg := context.background()
+ctxval := context.with_value(bg, "user", 123)
+fmt.println("with value: ", ctxval)
+fmt.println("context value: ", ctxval.value("user"))
+
+// get global symbol
+fmt.println("X=", X)
+fmt.println("Message=", message)
 
 fmt.print("# Run in script, start task...: ")
 fmt.println(tm.time_format(tm.now(), tm.format_rfc3339))

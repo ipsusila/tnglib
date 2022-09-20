@@ -4,8 +4,8 @@ import "errors"
 
 // List of known errors
 var (
-	ErrScriptAlreadyRegistered = errors.New("script already registered")
-	ErrScriptDoesNotExists     = errors.New("script does not exists")
+	ErrEntryAlreadyRegistered  = errors.New("entry already registered")
+	ErrEntryDoesNotExists      = errors.New("entry does not exists")
 	ErrUnsupportedConfigFormat = errors.New("unsupported configuration file format")
 	ErrBytecodeNotReady        = errors.New("bytecode not ready")
 	ErrInvalidBytecode         = errors.New("invalid bytecode")

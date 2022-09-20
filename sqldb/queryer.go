@@ -55,7 +55,7 @@ func queryRowx(fn func(context.Context, string, ...interface{}) *sqlx.Row) tengo
 			qargs = append(qargs, tengo.ToInterface(args[i]))
 		}
 
-		row := fn(ctx.Value, query, qargs...)
+		row := fn(ctx.Ctx, query, qargs...)
 		result := make(map[string]interface{})
 		if err := row.MapScan(result); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -84,7 +84,7 @@ func queryRowsx(fn func(context.Context, string, ...interface{}) (*sqlx.Rows, er
 			qargs = append(qargs, tengo.ToInterface(args[i]))
 		}
 
-		rows, err := fn(ctx.Value, query, qargs...)
+		rows, err := fn(ctx.Ctx, query, qargs...)
 		if err != nil {
 			return tnglib.WrapError(err), nil
 		}

@@ -99,7 +99,7 @@ func connectFunc() tengo.CallableFunc {
 			return nil, err
 		}
 
-		db, err := sqlx.ConnectContext(ctx.Value, drvName, dsn)
+		db, err := sqlx.ConnectContext(ctx.Ctx, drvName, dsn)
 		if err != nil {
 			return tnglib.WrapError(err), nil
 		}

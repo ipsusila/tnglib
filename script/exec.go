@@ -24,7 +24,7 @@ type Executor interface {
 	WaitAll(ctx context.Context) error
 }
 
-type compiledExecutor struct {
+type executor struct {
 	maxConcurrent int
 	numInProgress atomic.Int32
 	sem           *semaphore.Weighted
@@ -34,7 +34,7 @@ type compiledExecutor struct {
 // NewExecutor create script executor with limited concurrency.
 // If set to <= 0, then there will be no limit.
 func NewExecutor(man Manager, maxConcurrent int) Executor {
-	e := compiledExecutor{
+	e := executor{
 		man:           man,
 		maxConcurrent: maxConcurrent,
 	}
@@ -44,47 +44,47 @@ func NewExecutor(man Manager, maxConcurrent int) Executor {
 	return &e
 }
 
-func (c *compiledExecutor) NumInProgress() int {
-	n := c.numInProgress.Load()
+func (e *executor) NumInProgress() int {
+	n := e.numInProgress.Load()
 	return int(n)
 }
 
-func (c *compiledExecutor) WaitAll(ctx context.Context) error {
-	if c.sem != nil {
-		return c.sem.Acquire(ctx, int64(c.maxConcurrent))
+func (e *executor) WaitAll(ctx context.Context) error {
+	if e.sem != nil {
+		return e.sem.Acquire(ctx, int64(e.maxConcurrent))
 	}
 	return nil
 }
 
-func (c *compiledExecutor) Exec(id string, inpVars map[string]interface{}, outVars ...string) ([]*tengo.Variable, error) {
-	entry := c.man.Entry(id)
+func (e *executor) Exec(id string, inpVars map[string]interface{}, outVars ...string) ([]*tengo.Variable, error) {
+	entry := e.man.Entry(id)
 	if entry == nil {
-		return nil, fmt.Errorf("execute script id `%s`: %w", id, ErrScriptDoesNotExists)
+		return nil, fmt.Errorf("execute script id `%s`: %w", id, ErrEntryDoesNotExists)
 	}
 
 	conf := entry.Configuration()
 	ctx, cancel := context.WithTimeout(context.TODO(), conf.MaxTimeout(MaxExecutionTime))
 	defer cancel()
 
-	return c.runContext(ctx, entry, inpVars, outVars...)
+	return e.runContext(ctx, entry, inpVars, outVars...)
 }
 
-func (c *compiledExecutor) ExecContext(
+func (e *executor) ExecContext(
 	ctx context.Context,
 	id string,
 	inpVars map[string]interface{},
 	outVars ...string,
 ) ([]*tengo.Variable, error) {
 
-	entry := c.man.Entry(id)
+	entry := e.man.Entry(id)
 	if entry == nil {
-		return nil, fmt.Errorf("execute script id `%s`: %w", id, ErrScriptDoesNotExists)
+		return nil, fmt.Errorf("execute script id `%s`: %w", id, ErrEntryDoesNotExists)
 	}
 	// execute in context
-	return c.runContext(ctx, entry, inpVars, outVars...)
+	return e.runContext(ctx, entry, inpVars, outVars...)
 }
 
-func (c *compiledExecutor) runContext(
+func (e *executor) runContext(
 	ctx context.Context,
 	entry Entry,
 	inpVars map[string]interface{},
@@ -92,20 +92,20 @@ func (c *compiledExecutor) runContext(
 ) ([]*tengo.Variable, error) {
 
 	// assign variables
-	compiled := entry.Runnable()
+	r := entry.Runnable()
 	for name, val := range inpVars {
-		if err := compiled.Set(name, val); err != nil {
+		if err := r.Set(name, val); err != nil {
 			return nil, err
 		}
 	}
 
 	var err error
-	if c.maxConcurrent > 0 {
-		err = c.runAsync(ctx, compiled)
+	if e.maxConcurrent > 0 {
+		err = e.runAsync(ctx, r)
 	} else {
-		c.numInProgress.Add(1)
-		err = compiled.RunContext(ctx)
-		c.numInProgress.Add(-1)
+		e.numInProgress.Add(1)
+		err = r.RunContext(ctx)
+		e.numInProgress.Add(-1)
 	}
 
 	// check for error and return variable
@@ -115,26 +115,26 @@ func (c *compiledExecutor) runContext(
 	if len(outVars) > 0 {
 		results := []*tengo.Variable{}
 		for _, name := range outVars {
-			results = append(results, compiled.Get(name))
+			results = append(results, r.Get(name))
 		}
 		return results, nil
 	}
-	return compiled.GetAll(), nil
+	return r.GetAll(), nil
 }
 
-func (c *compiledExecutor) runAsync(ctx context.Context, compiled Runnable) error {
-	if c.sem == nil {
+func (e *executor) runAsync(ctx context.Context, compiled Runnable) error {
+	if e.sem == nil {
 		return errors.New("bug: pool/limiter not defined")
 	}
-	if err := c.sem.Acquire(ctx, 1); err != nil {
+	if err := e.sem.Acquire(ctx, 1); err != nil {
 		return err
 	}
-	c.numInProgress.Add(1)
+	e.numInProgress.Add(1)
 	errCh := make(chan error)
 	go func() {
 		defer func() {
-			c.numInProgress.Add(-1)
-			defer c.sem.Release(1)
+			e.numInProgress.Add(-1)
+			defer e.sem.Release(1)
 		}()
 
 		// execute the script

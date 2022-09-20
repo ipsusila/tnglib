@@ -89,7 +89,7 @@ func transactionFunc(fn0 func() (*sqlx.Tx, error), fn2 func(context.Context, *sq
 			opts.ReadOnly = vb
 		}
 
-		tx, err := fn2(ctx.Value, opts)
+		tx, err := fn2(ctx.Ctx, opts)
 		if err != nil {
 			return tnglib.WrapError(err), nil
 		}
