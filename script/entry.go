@@ -5,31 +5,24 @@ import (
 	"time"
 
 	"github.com/d5/tengo/v2"
-	"github.com/d5/tengo/v2/stdlib"
-	"github.com/ipsusila/tnglib"
 )
 
 // Entry properties
 type Entry interface {
-	ID() string
-	Filename() string
 	Configuration() Config
 	CompiledAt() time.Time
 	Age() time.Duration
-	Compiled() *tengo.Compiled
+	Runnable() Runnable
+	Recompile() error
 }
 
 type scriptEntry struct {
-	id          string
 	srcFilename string
 	conf        *Config
 	compiledAt  time.Time
 	compiled    *tengo.Compiled
 }
 
-func (e *scriptEntry) ID() string {
-	return e.id
-}
 func (e *scriptEntry) Filename() string {
 	return e.srcFilename
 }
@@ -45,33 +38,26 @@ func (e *scriptEntry) CompiledAt() time.Time {
 func (e *scriptEntry) Age() time.Duration {
 	return time.Since(e.compiledAt)
 }
-func (e *scriptEntry) Compiled() *tengo.Compiled {
+
+func (e *scriptEntry) Runnable() Runnable {
 	if e.compiled == nil {
 		return nil
 	}
 	return e.compiled.Clone()
 }
-
-func (e *scriptEntry) loadAndCompile() error {
+func (e *scriptEntry) Recompile() error {
+	return e.loadAndCompileSrcript()
+}
+func (e *scriptEntry) loadAndCompileSrcript() error {
 	// read source code
 	srcContent, err := os.ReadFile(e.srcFilename)
 	if err != nil {
 		return err
 	}
 
-	// load modules
-	var mod *tengo.ModuleMap
-	if len(e.conf.Modules) > 0 {
-		mod = stdlib.GetModuleMap(e.conf.Modules...)
-		mod.AddMap(tnglib.GetModuleMap(e.conf.Modules...))
-	} else {
-		mod = stdlib.GetModuleMap(stdlib.AllModuleNames()...)
-		mod.AddMap(tnglib.GetModuleMap(tnglib.AllModuleNames()...))
-	}
-
 	// create script and import modules
 	sc := tengo.NewScript([]byte(srcContent))
-	sc.SetImports(mod)
+	sc.SetImports(GetModuleMap(e.conf.Modules))
 	sc.EnableFileImport(e.conf.EnableFileImport)
 	sc.SetImportDir(e.conf.ImportDirectory(e.srcFilename))
 	if e.conf.MaxAllocs > 0 {
@@ -99,4 +85,17 @@ func (e *scriptEntry) loadAndCompile() error {
 	e.compiledAt = time.Now()
 
 	return nil
+}
+
+func loadAndCompileSrcript(srcFilename string, conf *Config) (Entry, error) {
+	// create new entry
+	e := scriptEntry{
+		srcFilename: srcFilename,
+		conf:        conf,
+	}
+	if err := e.loadAndCompileSrcript(); err != nil {
+		return nil, err
+	}
+
+	return &e, nil
 }

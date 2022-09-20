@@ -8,7 +8,8 @@ import (
 
 // Manager manages compiled script
 type Manager interface {
-	Add(id, srcFilename string, conf *Config) error
+	Add(id string, data []byte, conf *Config) error
+	AddFile(id, filename string, conf *Config) error
 	Recompile(id string) error
 	Entry(id string) Entry
 	Remove(id string)
@@ -25,8 +26,14 @@ func NewManager() Manager {
 	return &compiledManager{}
 }
 
+func (c *compiledManager) Add(id string, data []byte, conf *Config) error {
+	// TODO: return nil
+
+	return nil
+}
+
 // Add new script to manager
-func (c *compiledManager) Add(id, srcFilename string, conf *Config) error {
+func (c *compiledManager) AddFile(id, filename string, conf *Config) error {
 	// if configuration not specified,
 	// use default configuration
 	if conf == nil {
@@ -37,18 +44,17 @@ func (c *compiledManager) Add(id, srcFilename string, conf *Config) error {
 		return fmt.Errorf("adding script with id `%s`: %w", id, ErrScriptAlreadyRegistered)
 	}
 
+	// test
+	e, err := BytecodeFromSource(filename, conf)
+
 	// create new script entry
-	e := scriptEntry{
-		id:          id,
-		srcFilename: srcFilename,
-		conf:        conf,
-	}
-	if err := e.loadAndCompile(); err != nil {
+	//e, err := loadAndCompileSrcript(filename, conf)
+	if err != nil {
 		return err
 	}
 
 	// store entries
-	c.entries.Store(id, &e)
+	c.entries.Store(id, e)
 	return nil
 }
 
@@ -58,8 +64,8 @@ func (c *compiledManager) Recompile(id string) error {
 	if !found {
 		return fmt.Errorf("recompile script with id `%s`: %w", id, ErrScriptDoesNotExists)
 	}
-	e := v.(*scriptEntry)
-	return e.loadAndCompile()
+	e := v.(Entry)
+	return e.Recompile()
 }
 
 func (c *compiledManager) Entry(id string) Entry {
@@ -67,7 +73,7 @@ func (c *compiledManager) Entry(id string) Entry {
 	if !found {
 		return nil
 	}
-	return v.(*scriptEntry)
+	return v.(Entry)
 }
 
 func (c *compiledManager) Remove(id string) {
@@ -89,5 +95,5 @@ func (c *compiledManager) Age(id string) (time.Duration, bool) {
 	if !found {
 		return 0, false
 	}
-	return time.Since(v.(*scriptEntry).compiledAt), true
+	return v.(Entry).Age(), true
 }

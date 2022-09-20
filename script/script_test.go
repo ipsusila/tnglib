@@ -16,7 +16,7 @@ func execScript(t *testing.T, maxConcurrent, n int, timeout time.Duration) {
 	conf.Modules = []string{"fmt", "times", "context"}
 	man := script.NewManager()
 	exe := script.NewExecutor(man, maxConcurrent)
-	err := man.Add(id, "../_testdata/work.tengo", conf)
+	err := man.AddFile(id, "../_testdata/work.tengo", conf)
 	assert.NoError(t, err)
 
 	var wg sync.WaitGroup

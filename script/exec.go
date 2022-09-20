@@ -92,7 +92,7 @@ func (c *compiledExecutor) runContext(
 ) ([]*tengo.Variable, error) {
 
 	// assign variables
-	compiled := entry.Compiled()
+	compiled := entry.Runnable()
 	for name, val := range inpVars {
 		if err := compiled.Set(name, val); err != nil {
 			return nil, err
@@ -122,7 +122,7 @@ func (c *compiledExecutor) runContext(
 	return compiled.GetAll(), nil
 }
 
-func (c *compiledExecutor) runAsync(ctx context.Context, compiled *tengo.Compiled) error {
+func (c *compiledExecutor) runAsync(ctx context.Context, compiled Runnable) error {
 	if c.sem == nil {
 		return errors.New("bug: pool/limiter not defined")
 	}
