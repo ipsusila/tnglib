@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/d5/tengo/v2"
 	"github.com/ipsusila/tnglib"
 )
 
@@ -15,6 +16,7 @@ type Config struct {
 	ImportDir        string                 `json:"importDir"`
 	MaxAllocs        int64                  `json:"maxAllocs"`
 	MaxConstObjects  int                    `json:"maxConstObjects"`
+	ImportFileExt    []string               `json:"importFileExt"`
 	Modules          []string               `json:"modules"` // empty means all modules
 	InitVars         map[string]interface{} `json:"initVars"`
 }
@@ -53,4 +55,22 @@ func (c Config) ImportDirectory(srcFilename string) string {
 		return c.ImportDir
 	}
 	return filepath.Dir(srcFilename)
+}
+func (c Config) ImportFileExtensions() []string {
+	if len(c.ImportFileExt) == 0 {
+		return []string{tengo.SourceFileExtDefault}
+	}
+	return c.ImportFileExt
+}
+
+// IsSourceFile return true if extension is registered as compiled extension
+func (c Config) IsSourceFile(filename string) bool {
+	ext := filepath.Ext(filename)
+	extList := c.ImportFileExtensions()
+	for _, v := range extList {
+		if v == ext {
+			return true
+		}
+	}
+	return false
 }

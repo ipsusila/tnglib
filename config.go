@@ -27,6 +27,8 @@ func LoadConfigTo[T any, P Ptr[T]](filename string, out *T) error {
 		if err != nil {
 			return err
 		}
+		defer fd.Close()
+
 		dec := json.NewDecoder(fd)
 		return dec.Decode(out)
 	}

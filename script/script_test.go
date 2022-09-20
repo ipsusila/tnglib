@@ -34,6 +34,11 @@ func execScript(t *testing.T, maxConcurrent, n int, timeout time.Duration) {
 		t.Log("Num in progress: ", exe.NumInProgress())
 	}
 	wg.Wait()
+
+	// save entry to file
+	entry := man.Entry(id)
+	err = entry.SaveTo("../_testdata/work.out")
+	assert.NoError(t, err)
 }
 
 func TestUnlimited(t *testing.T) {
@@ -42,4 +47,10 @@ func TestUnlimited(t *testing.T) {
 
 func TestLimited(t *testing.T) {
 	execScript(t, 4, 10, 15*time.Second)
+}
+func TestBytecodeRead(t *testing.T) {
+	by, err := script.BytecodeFromFile("../_testdata/work.out")
+	assert.NoError(t, err)
+	t.Log("Compiled at: ", by.CompiledAt().Format(time.RFC3339))
+	t.Log("Config: ", by.Configuration())
 }

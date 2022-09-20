@@ -8,7 +8,7 @@ import (
 
 // Manager manages compiled script
 type Manager interface {
-	Add(id string, data []byte, conf *Config) error
+	Add(id string, data []byte) error
 	AddFile(id, filename string, conf *Config) error
 	Recompile(id string) error
 	Entry(id string) Entry
@@ -26,8 +26,13 @@ func NewManager() Manager {
 	return &compiledManager{}
 }
 
-func (c *compiledManager) Add(id string, data []byte, conf *Config) error {
-	// TODO: return nil
+func (c *compiledManager) Add(id string, data []byte) error {
+	e, err := BytecodeFromBytes(data)
+	if err != nil {
+		return err
+	}
+	// store entries
+	c.entries.Store(id, e)
 
 	return nil
 }
@@ -44,11 +49,14 @@ func (c *compiledManager) AddFile(id, filename string, conf *Config) error {
 		return fmt.Errorf("adding script with id `%s`: %w", id, ErrScriptAlreadyRegistered)
 	}
 
-	// test
-	e, err := BytecodeFromSource(filename, conf)
-
-	// create new script entry
-	//e, err := loadAndCompileSrcript(filename, conf)
+	var e Entry
+	var err error
+	isSource := conf.IsSourceFile(filename)
+	if isSource {
+		e, err = BytecodeFromSource(filename, conf)
+	} else {
+		e, err = BytecodeFromFile(filename)
+	}
 	if err != nil {
 		return err
 	}

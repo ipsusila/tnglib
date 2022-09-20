@@ -1,6 +1,8 @@
 package script
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,8 +14,10 @@ import (
 	"github.com/d5/tengo/v2/parser"
 )
 
+// file identifier
 const (
-	verCnt = 4
+	verCnt       = 4
+	magicNo byte = 11
 )
 
 var (
@@ -49,19 +53,26 @@ func BytecodeFromSource(filename string, conf *Config) (Entry, error) {
 }
 
 // BytecodeFromFile loads compiled code from file
-func BytecodeFromFile(filename string, conf *Config) (Entry, error) {
+func BytecodeFromFile(filename string) (Entry, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer fd.Close()
 
-	bc := compiledBytecode{
-		hdr: header{
-			Conf: *conf,
-		},
-	}
+	bc := compiledBytecode{}
 	if err := bc.Decode(fd); err != nil {
+		return nil, err
+	}
+
+	return &bc, nil
+}
+
+// BytecodeFromBytes convert byte array to byte code
+func BytecodeFromBytes(input []byte) (Entry, error) {
+	r := bytes.NewReader(input)
+	bc := compiledBytecode{}
+	if err := bc.Decode(r); err != nil {
 		return nil, err
 	}
 
@@ -197,18 +208,22 @@ func (b *compiledBytecode) Compile(conf *Config, input []byte) error {
 	// 1. current
 	// 2. working directory
 	// 3. if filename is specified, same to the folder of the filename
-	defImpDir := "."
+	defImpDir, err := filepath.Abs(".")
+	if err != nil {
+		return err
+	}
 	if dir, err := os.Getwd(); err == nil {
-		defImpDir = dir
+		defImpDir = filepath.Clean(dir)
 	}
 	if b.filename != "" {
 		defImpDir = filepath.Dir(b.filename)
 	}
 
 	modules := GetModuleMap(conf.Modules)
-	c := tengo.NewCompiler(srcFile, symbolTable, nil, modules, nil)
+	c := tengo.NewCompiler(srcFile, symbolTable, nil, modules, os.Stdout)
+	c.SetImportFileExt(conf.ImportFileExtensions()...)
 	c.EnableFileImport(conf.EnableFileImport)
-	c.SetImportDir(conf.ImportDirectory(filepath.Dir(defImpDir)))
+	c.SetImportDir(conf.ImportDirectory(defImpDir))
 	if err := c.Compile(file); err != nil {
 		return err
 	}
@@ -243,9 +258,20 @@ func (b *compiledBytecode) Encode(w io.Writer) error {
 	return b.encode(w, verVal[:])
 }
 func (b *compiledBytecode) Decode(r io.Reader) error {
-	// 1. read version
+	// 1. Get magic no
+	mn := [1]byte{}
+	n, err := r.Read(mn[:])
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return ErrInvalidBytecode
+	}
+
+	// 2. Get version
+	// TODO: verify version
 	ver := [verCnt]byte{}
-	n, err := r.Read(ver[:])
+	n, err = r.Read(ver[:])
 	if err != nil {
 		return err
 	}
@@ -253,31 +279,43 @@ func (b *compiledBytecode) Decode(r io.Reader) error {
 		return ErrInvalidBytecode
 	}
 
-	// TODO: verify version
-
-	// 2. read header
-	var hdr header
-	dec := json.NewDecoder(r)
-	if err := dec.Decode(&hdr); err != nil {
+	// 3. Get number of bytes for Config stream
+	cnt := make([]byte, 8)
+	if _, err := r.Read(cnt); err != nil {
+		return err
+	}
+	nb := binary.BigEndian.Uint64(cnt)
+	if nb <= 0 {
+		return ErrInvalidBytecode
+	}
+	js := make([]byte, nb)
+	if _, err := r.Read(js); err != nil {
 		return err
 	}
 
-	// 3. decode bytecode
-	var bytecode tengo.Bytecode
-	modules := GetModuleMap(b.hdr.Conf.Modules)
+	// 4. Get JSON config
+	var hdr header
+	if err := json.Unmarshal(js, &hdr); err != nil {
+		return err
+	}
+
+	// 5. decode bytecode
+	bytecode := &tengo.Bytecode{}
+	modules := GetModuleMap(hdr.Conf.Modules)
 	if err := bytecode.Decode(r, modules); err != nil {
 		return err
 	}
 
+	// Create global variables
 	globals, err := b.makeGlobals()
 	if err != nil {
 		return err
 	}
 
 	b.hdr = hdr
-	b.bytecode = &bytecode
+	b.bytecode = bytecode
 	b.globals = globals
-	b.filename = "" // not recomfileable source
+	b.filename = "" // not recompilable source
 
 	return nil
 }
@@ -286,12 +324,42 @@ func (b *compiledBytecode) encode(w io.Writer, ver []byte) error {
 	if b.bytecode == nil {
 		return ErrBytecodeNotReady
 	}
+	// 1. Write magic number
+	if _, err := w.Write([]byte{magicNo}); err != nil {
+		return err
+	}
+
+	// 2. Write version info
 	if _, err := w.Write(ver); err != nil {
 		return err
 	}
-	enc := json.NewEncoder(w)
-	if err := enc.Encode(b.hdr); err != nil {
+
+	// 3. Write size of JSON stream and JSON config
+	js, err := json.Marshal(b.hdr)
+	if err != nil {
 		return err
 	}
+	nb := uint64(len(js))
+	cnt := make([]byte, 8)
+	binary.BigEndian.PutUint64(cnt, nb)
+	if _, err := w.Write(cnt); err != nil {
+		return err
+	}
+	if _, err := w.Write(js); err != nil {
+		return err
+	}
+
+	// 4. Write bytecode stream
 	return b.bytecode.Encode(w)
+}
+
+// SaveTo saves bytecode to file
+func (b *compiledBytecode) SaveTo(filename string) error {
+	fw, err := os.Create(filename)
+	if err != nil {
+		return nil
+	}
+	defer fw.Close()
+
+	return b.Encode(fw)
 }
