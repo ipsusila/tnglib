@@ -8,37 +8,32 @@ import (
 	"github.com/ipsusila/tnglib"
 )
 
-func prepareExecutor(filename string, modules ...string) (string, Executor, error) {
-	const id = "__default__"
+func prepareRunnable(filename string, modules ...string) (Runnable, error) {
 	conf := DefaultConfig()
-	conf.Modules = modules
-	man := NewManager()
-	exe := NewExecutor(man, Unlimited)
-	if err := man.AddFile(id, filename, conf); err != nil {
-		return id, nil, err
+	conf.Modules = append(conf.Modules, modules...)
+	e, err := BytecodeFromFile(filename, conf)
+	if err != nil {
+		return nil, err
 	}
-	return id, exe, nil
+	return e.Runnable(), nil
 }
 
 // RunFile execute tengo script file using default context
 func RunFile(filename string, modules ...string) error {
-	id, exe, err := prepareExecutor(filename, modules...)
+	r, err := prepareRunnable(filename, modules...)
 	if err != nil {
 		return err
 	}
-	_, err = exe.Exec(id, nil)
-	return err
+	return r.Run()
 }
 
 // RunFileContext execute tengo script file with given context
 func RunFileContext(ctx context.Context, filename string, modules ...string) error {
-	id, exe, err := prepareExecutor(filename, modules...)
+	r, err := prepareRunnable(filename, modules...)
 	if err != nil {
 		return err
 	}
-
-	_, err = exe.ExecContext(ctx, id, nil)
-	return err
+	return r.RunContext(ctx)
 }
 
 // GetImportableModuleMap from given modules name.

@@ -40,6 +40,14 @@ type bytecodeEntry struct {
 	filename string
 }
 
+// BytecodeFromFile create bytecode either from source or compiled
+func BytecodeFromFile(filename string, conf *Config) (Entry, error) {
+	if conf.IsSourceFile(filename) {
+		return BytecodeFromSource(filename, conf)
+	}
+	return BytecodeFromCompiled(filename)
+}
+
 // BytecodeFromSource compiles source file and then store it to bytecode
 func BytecodeFromSource(filename string, conf *Config) (Entry, error) {
 	bc := bytecodeEntry{
@@ -54,8 +62,8 @@ func BytecodeFromSource(filename string, conf *Config) (Entry, error) {
 	return &bc, nil
 }
 
-// BytecodeFromFile loads compiled code from file
-func BytecodeFromFile(filename string) (Entry, error) {
+// BytecodeFromCompiled loads compiled code from file
+func BytecodeFromCompiled(filename string) (Entry, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, err

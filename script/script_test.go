@@ -12,15 +12,19 @@ import (
 
 func execScript(t *testing.T, maxConcurrent, n int, timeout time.Duration) {
 	id := "test"
+	modules := []string{"fmt", "times", "context"}
+	scriptFile := "../_testdata/work.tengo"
+	compiledFile := "../_testdata/work.out"
+
 	conf := script.DefaultConfig()
 	conf.InitVars = map[string]interface{}{
 		"X":       100,
 		"message": "hello world",
 	}
-	conf.Modules = []string{"fmt", "times", "context"}
+	conf.Modules = modules
 	man := script.NewManager()
 	exe := script.NewExecutor(man, maxConcurrent)
-	err := man.AddFile(id, "../_testdata/work.tengo", conf)
+	err := man.AddFile(id, scriptFile, conf)
 	assert.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -41,7 +45,11 @@ func execScript(t *testing.T, maxConcurrent, n int, timeout time.Duration) {
 
 	// save entry to file
 	entry := man.Entry(id)
-	err = entry.SaveTo("../_testdata/work.out")
+	err = entry.SaveTo(compiledFile)
+	assert.NoError(t, err)
+
+	// run entry
+	err = script.RunFile(compiledFile, modules...)
 	assert.NoError(t, err)
 }
 

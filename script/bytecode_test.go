@@ -10,7 +10,7 @@ import (
 )
 
 func TestBytecodeRead(t *testing.T) {
-	by, err := script.BytecodeFromFile("../_testdata/work.out")
+	by, err := script.BytecodeFromCompiled("../_testdata/work.out")
 	assert.NoError(t, err)
 	t.Log("Compiled at: ", by.CompiledAt().Format(time.RFC3339))
 	t.Log("Config: ", by.Configuration())

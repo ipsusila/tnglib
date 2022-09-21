@@ -66,14 +66,7 @@ func (m *manager) AddFile(id, filename string, conf *Config) error {
 		return ErrEntryAlreadyRegistered
 	}
 
-	var e Entry
-	var err error
-	isSource := conf.IsSourceFile(filename)
-	if isSource {
-		e, err = BytecodeFromSource(filename, conf)
-	} else {
-		e, err = BytecodeFromFile(filename)
-	}
+	e, err := BytecodeFromFile(filename, conf)
 	if err != nil {
 		return err
 	}
