@@ -24,12 +24,12 @@ func makeIoScanner(s *bufio.Scanner) *tengo.ImmutableMap {
 			// bytes() => []byte
 			"bytes": &tengo.UserFunction{
 				Name:  "bytes",
-				Value: FuncARBs(s.Bytes),
+				Value: FuncARYs(s.Bytes),
 			},
 			// buffer([]byte, int)
 			"buffer": &tengo.UserFunction{
 				Name:  "buffer",
-				Value: FuncABsIR(s.Buffer),
+				Value: FuncAYIR(s.Buffer),
 			},
 			// err() => error
 			"err": &tengo.UserFunction{

@@ -24,6 +24,21 @@ func MustTimeSpan(s string) Span {
 	return Span{Duration: dur}
 }
 
+// IsZero return true if duration is zero
+func (d Span) IsZero() bool {
+	return d.Duration == 0
+}
+
+// IsNegative return true if duration is less than 0
+func (d Span) IsNegative() bool {
+	return d.Duration < 0
+}
+
+// IsPositive return true if duration is greater than 0
+func (d Span) IsPositive() bool {
+	return d.Duration > 0
+}
+
 // MarshalJSON converts duration to string
 func (d Span) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())

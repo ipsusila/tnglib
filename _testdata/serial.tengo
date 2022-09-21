@@ -1,0 +1,10 @@
+ser := import("serial")
+fmt := import("fmt")
+
+ports := ser.get_ports_list()
+fmt.println("Serial ports: ", ports)
+
+ports = ser.get_detailed_ports_list()
+for p in ports {
+    fmt.println("  Port: ", p)
+}

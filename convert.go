@@ -75,6 +75,23 @@ func ArgIToInt(idx int, args ...tengo.Object) (int, error) {
 	return n, nil
 }
 
+// ArgToBool convert tengo function call arguments to boolean.
+// If the argument count is not equal to one, it will return ErrWrongNumArguments
+func ArgToBool(args ...tengo.Object) (bool, error) {
+	if len(args) != 1 {
+		return false, tengo.ErrWrongNumArguments
+	}
+	v, ok := tengo.ToBool(args[0])
+	if !ok {
+		return false, tengo.ErrInvalidArgumentType{
+			Name:     "first",
+			Expected: "bool(compatible)",
+			Found:    args[0].TypeName(),
+		}
+	}
+	return v, nil
+}
+
 // ArgIToBool convert tengo function call arguments to boolean.
 // If the argument count is not equal to one, it will return ErrWrongNumArguments
 func ArgIToBool(idx int, args ...tengo.Object) (bool, error) {
@@ -315,6 +332,29 @@ func ArgIToDuration(idx int, args ...tengo.Object) (time.Duration, error, error)
 		timeout = time.Duration(nano)
 	} else {
 		if str, err := ArgIToString(idx, args...); err != nil {
+			return 0, nil, err
+		} else if duration, err := time.ParseDuration(str); err != nil {
+			return 0, err, nil
+		} else {
+			timeout = duration
+		}
+	}
+	return timeout, nil, nil
+}
+
+// ArgToDuration convert i to duriation
+// err1 -> conversion error
+// err2 -> argument mismatch
+func ArgToDuration(args ...tengo.Object) (time.Duration, error, error) {
+	if len(args) != 1 {
+		return 0, nil, tengo.ErrWrongNumArguments
+	}
+	var timeout time.Duration
+	nano, ok := tengo.ToInt64(args[0])
+	if ok {
+		timeout = time.Duration(nano)
+	} else {
+		if str, err := ArgIToString(0, args...); err != nil {
 			return 0, nil, err
 		} else if duration, err := time.ParseDuration(str); err != nil {
 			return 0, err, nil

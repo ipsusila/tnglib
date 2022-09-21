@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/d5/tengo/v2"
+	"github.com/ipsusila/tnglib"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -66,7 +67,10 @@ func (e *executor) Exec(id string,
 	}
 
 	conf := entry.Configuration()
-	ctx, cancel := context.WithTimeout(context.TODO(), conf.MaxExecutionTime.Duration)
+	ctx, cancel := context.WithTimeout(context.TODO(),
+		tnglib.Ternary(conf.MaxExecutionTime.IsPositive(),
+			conf.MaxExecutionTime.Duration,
+			MaxExecutionTime))
 	defer cancel()
 
 	return e.runContext(ctx, entry, inpVars, outVars...)
