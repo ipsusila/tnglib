@@ -1,0 +1,13 @@
+{
+    // with comment
+    id: TESTING
+
+    // array items
+    array: [1, 2, 3]
+
+    // nested objects
+    "params": {
+        "any": null,
+        "ten": 10
+    }
+}

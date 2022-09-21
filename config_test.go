@@ -20,8 +20,15 @@ func TestLoadConfigTo(t *testing.T) {
 	assert.Equal(t, "TESTING", conf.ID)
 }
 
-func TestLoadConfig(t *testing.T) {
+func TestLoadJsonConfig(t *testing.T) {
 	conf, err := tnglib.LoadConfig[myconfig]("./_testdata/config.json")
 	assert.NoError(t, err)
 	assert.Equal(t, "TESTING", conf.ID)
+}
+
+func TestLoadHjsonConfig(t *testing.T) {
+	conf, err := tnglib.LoadConfig[myconfig]("./_testdata/config.hjson")
+	assert.NoError(t, err)
+	assert.Equal(t, "TESTING", conf.ID)
+	assert.Len(t, conf.Array, 3)
 }

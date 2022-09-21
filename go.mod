@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/d5/tengo/v2 v2.12.2
+	github.com/hjson/hjson-go/v4 v4.1.0
 	github.com/ipsusila/registry v0.2.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.15
