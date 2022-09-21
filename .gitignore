@@ -1,2 +1,3 @@
 _testdata/*.out
 _testdata/private*
+_testdata/email.tengo
