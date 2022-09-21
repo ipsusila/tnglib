@@ -2,7 +2,6 @@ package script
 
 import (
 	"path/filepath"
-	"time"
 
 	"github.com/d5/tengo/v2"
 	"github.com/ipsusila/tnglib"
@@ -11,7 +10,7 @@ import (
 // Config stores configuration
 // for each script to be executed.
 type Config struct {
-	MaxExecutionTime string                 `json:"maxExecutionTime"`
+	MaxExecutionTime tnglib.Span            `json:"maxExecutionTime"`
 	EnableFileImport bool                   `json:"enableFileImport"`
 	ImportDir        string                 `json:"importDir"`
 	MaxAllocs        int64                  `json:"maxAllocs"`
@@ -24,6 +23,7 @@ type Config struct {
 // DefaultConfig create default configuration for script
 func DefaultConfig() *Config {
 	return &Config{
+		MaxExecutionTime: tnglib.MustTimeSpan("5m"),
 		MaxAllocs:        -1,
 		MaxConstObjects:  -1,
 		EnableFileImport: true,
@@ -38,15 +38,6 @@ func NewFileConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 	return conf, nil
-}
-
-// MaxTimeout return maximum execution time in time.Duration
-func (c Config) MaxTimeout(def time.Duration) time.Duration {
-	dur, err := time.ParseDuration(c.MaxExecutionTime)
-	if err != nil {
-		return def
-	}
-	return dur
 }
 
 // ImportDirectory for given srcFilename

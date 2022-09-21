@@ -56,14 +56,17 @@ func (e *executor) WaitAll(ctx context.Context) error {
 	return nil
 }
 
-func (e *executor) Exec(id string, inpVars map[string]interface{}, outVars ...string) ([]*tengo.Variable, error) {
+func (e *executor) Exec(id string,
+	inpVars map[string]interface{},
+	outVars ...string,
+) ([]*tengo.Variable, error) {
 	entry := e.man.Entry(id)
 	if entry == nil {
 		return nil, fmt.Errorf("execute script id `%s`: %w", id, ErrEntryDoesNotExists)
 	}
 
 	conf := entry.Configuration()
-	ctx, cancel := context.WithTimeout(context.TODO(), conf.MaxTimeout(MaxExecutionTime))
+	ctx, cancel := context.WithTimeout(context.TODO(), conf.MaxExecutionTime.Duration)
 	defer cancel()
 
 	return e.runContext(ctx, entry, inpVars, outVars...)
